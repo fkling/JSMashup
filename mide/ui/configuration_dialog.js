@@ -15,11 +15,10 @@ goog.require('goog.object');
  * Parent container for all configuration input elements
  * 
  * @param {Array.<Object>} parameterConfig
- * @param opt_domHelper
  * @constructor
  */
-mide.ui.ConfigurationDialog = function(paremterConfig, opt_domHelper) {
-	goog.ui.Component.call(this, opt_domHelper);
+mide.ui.ConfigurationDialog = function(paremterConfig) {
+	goog.ui.Component.call(this);
 
 	this.fields = {};
 	

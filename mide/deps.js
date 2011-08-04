@@ -30,4 +30,4 @@ goog.addDependency('../../../mide/ui/input/base_input.js', ['mide.ui.input.BaseI
 goog.addDependency('../../../mide/ui/input/dropdown.js', ['mide.ui.input.Dropdown'], ['goog.dom', 'mide.ui.input.BaseInput', 'mide.ui.input.InputFactory']);
 goog.addDependency('../../../mide/ui/input/input_factory.js', ['mide.ui.input.InputFactory'], []);
 goog.addDependency('../../../mide/ui/input/text.js', ['mide.ui.input.Text'], ['goog.dom', 'mide.ui.input.BaseInput', 'mide.ui.input.InputFactory']);
-goog.addDependency('../../../mide/util/option_map.js', ['mide.util.OptionMap'], []);
+goog.addDependency('../../../mide/util/optionmap.js', ['mide.util.OptionMap'], []);
