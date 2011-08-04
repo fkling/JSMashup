@@ -1,6 +1,6 @@
-goog.provide('mashupIDE.ui.input.InputFactory');
+goog.provide('mide.ui.input.InputFactory');
 
-mashupIDE.ui.input.InputFactory = {
+mide.ui.input.InputFactory = {
 	inputs_: {},
 	registerInput: function(name, input) {
 		this.inputs_[name] = input;

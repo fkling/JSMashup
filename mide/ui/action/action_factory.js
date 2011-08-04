@@ -1,6 +1,6 @@
-goog.provide('mashupIDE.ui.action.ActionFactory');
+goog.provide('mide.ui.action.ActionFactory');
 
-mashupIDE.ui.action.ActionFactory = {
+mide.ui.action.ActionFactory = {
 	actions_: {},
 	register: function(name, action) {
 		this.actions_[name] = action;

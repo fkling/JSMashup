@@ -1,7 +1,7 @@
-goog.provide('mashupIDE.core.registry.ServerRegistry');
-goog.require('mashupIDE.core.registry.BaseRegistry');
-goog.require('mashupIDE.core.ComponentDescriptor');
-goog.require('mashupIDE.core.net');
+goog.provide('mide.core.registry.ServerRegistry');
+goog.require('mide.core.registry.BaseRegistry');
+goog.require('mide.core.ComponentDescriptor');
+goog.require('mide.core.net');
 
 goog.require('goog.array');
 goog.require('goog.object');
@@ -11,10 +11,10 @@ goog.require('goog.uri.utils');
  * A registry implementation using localstorage
  * 
  * @constructor
- * @implements {mashupIDE.core.registry.BaseRegistry}
+ * @implements {mide.core.registry.BaseRegistry}
  */
-mashupIDE.core.registry.ServerRegistry = function(options) {
-	mashupIDE.core.registry.BaseRegistry.call(this, options);
+mide.core.registry.ServerRegistry = function(options) {
+	mide.core.registry.BaseRegistry.call(this, options);
 	
 	this.base_url = '';
 	
@@ -37,13 +37,13 @@ mashupIDE.core.registry.ServerRegistry = function(options) {
 	this.userComponentsArray_ = [];
 };
 
-goog.inherits(mashupIDE.core.registry.ServerRegistry, mashupIDE.core.registry.BaseRegistry);
+goog.inherits(mide.core.registry.ServerRegistry, mide.core.registry.BaseRegistry);
 
 
 /**
  * @overwrite
  */
-mashupIDE.core.registry.ServerRegistry.prototype.load = function(options, success, error) {
+mide.core.registry.ServerRegistry.prototype.load = function(options, success, error) {
 	goog.object.extend(this.options, options || {});
 	
 	var self = this;
@@ -56,7 +56,7 @@ mashupIDE.core.registry.ServerRegistry.prototype.load = function(options, succes
 	}
 	
 	if(this.options.config_url) {
-		mashupIDE.core.net.makeRequest({
+		mide.core.net.makeRequest({
 			url: this.options.config_url,
 			success: function(event) {
 				self.configure(event.target.getResponseText());
@@ -75,7 +75,7 @@ mashupIDE.core.registry.ServerRegistry.prototype.load = function(options, succes
 /**
  * @overwrite
  */
-mashupIDE.core.registry.ServerRegistry.prototype.configure = function(config, success, error) {
+mide.core.registry.ServerRegistry.prototype.configure = function(config, success, error) {
 	//TODO: Implement configuration file parsing
 };
 
@@ -83,7 +83,7 @@ mashupIDE.core.registry.ServerRegistry.prototype.configure = function(config, su
 /**
  * @overwrite
  */
-mashupIDE.core.registry.ServerRegistry.prototype.getComponents = function(success, error) {
+mide.core.registry.ServerRegistry.prototype.getComponents = function(success, error) {
 	var self = this;
 	if(this.componentsArray_.length == 0) {
 		this.loadComponents_(this.components_url, this.componentsArray_, function(){
@@ -100,10 +100,10 @@ mashupIDE.core.registry.ServerRegistry.prototype.getComponents = function(succes
 /**
  * @overwrite
  */
-mashupIDE.core.registry.ServerRegistry.prototype.getUserComponents = function(success, error) {
+mide.core.registry.ServerRegistry.prototype.getUserComponents = function(success, error) {
 	var self = this;
 	if(this.options.user_id == null) { // or undefined
-		throw new Error("[mashupIDE.core.registry.ServerRegistry] No user id was set");
+		throw new Error("[mide.core.registry.ServerRegistry] No user id was set");
 	}
 	if(this.userComponentsArray_.length == 0) {
 		this.loadComponents_(this.userComponents_url, this.userComponentsArray_, function(){
@@ -120,20 +120,20 @@ mashupIDE.core.registry.ServerRegistry.prototype.getUserComponents = function(su
 /**
  * @overwrite
  */
-mashupIDE.core.registry.ServerRegistry.prototype.getComponentDescriptorById = function(id, success, error) {
+mide.core.registry.ServerRegistry.prototype.getComponentDescriptorById = function(id, success, error) {
 	var self = this;
 	if(this.componentDescriptors_[id]) {
 		success(this.componentDescriptors_[id]);
 	}
 	else {
-		mashupIDE.core.net.getXhr(function(xhr){			
+		mide.core.net.getXhr(function(xhr){			
 			goog.events.listen(xhr, goog.net.EventType.COMPLETE, function(evt) {
 				var xhr = evt.target;
 
 				switch(xhr.getStatus()) {
 				case 200:
 					var comp = xhr.getResponseJson();
-					var descr = new mashupIDE.core.ComponentDescriptor();
+					var descr = new mide.core.ComponentDescriptor();
 					descr.setId(id);
 					descr.setXml(comp.model);
 					descr.setJs(comp.impl);
@@ -154,21 +154,21 @@ mashupIDE.core.registry.ServerRegistry.prototype.getComponentDescriptorById = fu
 /**
  * @overwrite
  */
-mashupIDE.core.registry.ServerRegistry.prototype.getComponentDescriptorByUrl = function(url, success, error) {
+mide.core.registry.ServerRegistry.prototype.getComponentDescriptorByUrl = function(url, success, error) {
 	
 };
 
 /**
  * @overwrite
  */
-mashupIDE.core.registry.ServerRegistry.prototype.saveComponent = function(descriptor, success, error) {
+mide.core.registry.ServerRegistry.prototype.saveComponent = function(descriptor, success, error) {
 	var url, 
 		id = descriptor.getId(),
 		self = this;
 	 
 	if(id) {
 		url =  self.components_url + '/' + id
-		mashupIDE.core.net.getXhr(function(xhr){
+		mide.core.net.getXhr(function(xhr){
 			goog.events.listen(xhr, goog.net.EventType.COMPLETE, function(evt) {
 				var xhr = evt.target;
 
@@ -195,14 +195,14 @@ mashupIDE.core.registry.ServerRegistry.prototype.saveComponent = function(descri
 /**
  * @overwrite
  */
-mashupIDE.core.registry.ServerRegistry.prototype.deleteComponent = function(descriptor, success, error) {
+mide.core.registry.ServerRegistry.prototype.deleteComponent = function(descriptor, success, error) {
 	var url, 
 		id = descriptor.getId(),
 		self = this;
 	 
 	if(id && self.componentDescriptors_[id]) {
 		url =  this.base_url + descriptor.getId();
-		mashupIDE.core.net.getXhr(function(xhr){
+		mide.core.net.getXhr(function(xhr){
 			goog.events.listen(xhr, goog.net.EventType.COMPLETE, function(evt) {
 				var xhr = evt.target;
 
@@ -224,10 +224,10 @@ mashupIDE.core.registry.ServerRegistry.prototype.deleteComponent = function(desc
 /**
  * @private
  */
-mashupIDE.core.registry.ServerRegistry.prototype.loadComponents_ = function(url, target, success, error) {
+mide.core.registry.ServerRegistry.prototype.loadComponents_ = function(url, target, success, error) {
 	var self = this;
 	
-	mashupIDE.core.net.makeRequest({
+	mide.core.net.makeRequest({
 		url: url,
 		success: function(e) {
 			var components = e.target.getResponseJson();
@@ -239,9 +239,9 @@ mashupIDE.core.registry.ServerRegistry.prototype.loadComponents_ = function(url,
 	});
 };
 
-mashupIDE.core.registry.ServerRegistry.getInstance = function() {
-	if(!mashupIDE.core.registry.ServerRegistry.instance) {
-		mashupIDE.core.registry.ServerRegistry.instance = new mashupIDE.core.registry.ServerRegistry();
+mide.core.registry.ServerRegistry.getInstance = function() {
+	if(!mide.core.registry.ServerRegistry.instance) {
+		mide.core.registry.ServerRegistry.instance = new mide.core.registry.ServerRegistry();
 	}
-	return mashupIDE.core.registry.ServerRegistry.instance;
+	return mide.core.registry.ServerRegistry.instance;
 };

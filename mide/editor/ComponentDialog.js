@@ -1,11 +1,11 @@
-goog.provide('mashupIDE.editor.ComponentDialog');
+goog.provide('mide.editor.ComponentDialog');
 
-goog.require('mashupIDE.core.registry');
+goog.require('mide.core.registry');
 goog.require('goog.ui.Dialog');
 goog.require('goog.dom');
 
 
-mashupIDE.editor.ComponentDialog = function() {
+mide.editor.ComponentDialog = function() {
 	goog.ui.Dialog.call(this);
 	this.dom = goog.dom;
 	
@@ -21,25 +21,25 @@ mashupIDE.editor.ComponentDialog = function() {
 	    	  this.dom.getAncestorByClass(e.target, 'component');
 	      
 	      if(component) {
-	    	  this.dispatchEvent({type: mashupIDE.editor.ComponentDialog.Events.COMPONENT_SELECTED, component_id: component.id});
+	    	  this.dispatchEvent({type: mide.editor.ComponentDialog.Events.COMPONENT_SELECTED, component_id: component.id});
 	      }
 	}, null, this);
 	
 	this.dom.append(this.getContentElement(), this.listNode);
 };
 
-goog.inherits(mashupIDE.editor.ComponentDialog, goog.ui.Dialog);
+goog.inherits(mide.editor.ComponentDialog, goog.ui.Dialog);
 
 
 /**
  * @private
  */
-mashupIDE.editor.ComponentDialog.prototype.onselect = function() {};
+mide.editor.ComponentDialog.prototype.onselect = function() {};
 
-mashupIDE.editor.ComponentDialog.prototype.show = function() {
+mide.editor.ComponentDialog.prototype.show = function() {
 	var self = this;
 	var d = self.dom;
-	mashupIDE.core.registry.getInstance().getUserComponents(function(cs) {
+	mide.core.registry.getInstance().getUserComponents(function(cs) {
 		d.removeChildren(self.listNode);
 		goog.array.forEach(cs, function(v) {
 			d.append(self.listNode, d.createDom('div', {class: 'component', id: v.id}, 
@@ -51,10 +51,10 @@ mashupIDE.editor.ComponentDialog.prototype.show = function() {
 	});
 };
 
-mashupIDE.editor.ComponentDialog.prototype.hide = function() {
+mide.editor.ComponentDialog.prototype.hide = function() {
 	this.setVisible(false);
 };
 
-goog.object.extend(mashupIDE.editor.ComponentDialog.Events || (mashupIDE.editor.ComponentDialog.Events = {}), {
+goog.object.extend(mide.editor.ComponentDialog.Events || (mide.editor.ComponentDialog.Events = {}), {
 	COMPONENT_SELECTED: 'selected'
 });

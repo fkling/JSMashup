@@ -1,8 +1,8 @@
-goog.provide('mashupIDE.core.Session');
-goog.provide('mashupIDE.config.session');
+goog.provide('mide.core.Session');
+goog.provide('mide.config.session');
 
-goog.require('mashupIDE.Canvas');
-goog.require('mashupIDE.ServiceCallConverter');
+goog.require('mide.Canvas');
+goog.require('mide.ServiceCallConverter');
 
 goog.require('goog.ui.IdGenerator');
 goog.require('goog.object');
@@ -11,7 +11,7 @@ goog.require('goog.object');
  * @constructor
  * @private
  */
-mashupIDE.core.Session = function() {
+mide.core.Session = function() {
 	this.id_generator = goog.ui.IdGenerator.getInstance();
 	this.session_id = this.getSessionId();
 };
@@ -20,42 +20,42 @@ mashupIDE.core.Session = function() {
 /**
  * @public
  */
-mashupIDE.core.Session.start = function() {
-	if(!mashupIDE.core.Session.instance) {
-		mashupIDE.core.Session.instance = new mashupIDE.core.Session();
+mide.core.Session.start = function() {
+	if(!mide.core.Session.instance) {
+		mide.core.Session.instance = new mide.core.Session();
 	}
-	return mashupIDE.core.Session.instance;
+	return mide.core.Session.instance;
 };
 
 /**
  * @public
  */
-mashupIDE.core.Session.getInstance = function(cb) {
-	return mashupIDE.core.Session.instance;
+mide.core.Session.getInstance = function(cb) {
+	return mide.core.Session.instance;
 };
 
 /**
  * @private
  */
-mashupIDE.core.Session.instance = null;
+mide.core.Session.instance = null;
 
 /**
  * @private
  */
-mashupIDE.core.Session.prototype.session_id = null;
+mide.core.Session.prototype.session_id = null;
 
 
 /**
  * @private
  */
-mashupIDE.core.Session.prototype.id_generator = null;
+mide.core.Session.prototype.id_generator = null;
 
 /**
  * @return {string}
  * 
  * @public
  */
-mashupIDE.core.Session.prototype.getId = function() {
+mide.core.Session.prototype.getId = function() {
 	return this.session_id;
 };
 
@@ -65,7 +65,7 @@ mashupIDE.core.Session.prototype.getId = function() {
  * 
  * @protected
  */
-mashupIDE.core.Session.prototype.getSessionId = function() {
+mide.core.Session.prototype.getSessionId = function() {
 	return this.id_generator.getNextUniqueId() + Date.now();
 };
 
@@ -74,7 +74,7 @@ mashupIDE.core.Session.prototype.getSessionId = function() {
 /**
  * @public
  */
-mashupIDE.core.Session.prototype.loadComposition = function(composition, cb) {
+mide.core.Session.prototype.loadComposition = function(composition, cb) {
 	console.log(composition);
 	this.composition_ = composition;
 	var modules = [];
@@ -84,45 +84,45 @@ mashupIDE.core.Session.prototype.loadComposition = function(composition, cb) {
 		modules.push(config.config);
 	}
 	
-	mashupIDE.PubSub.clear();
+	mide.PubSub.clear();
 	
-	mashupIDE.Canvas.getInstance().loadComposition(modules, composition.working.wires);
-	mashupIDE.Canvas.getInstance().show();
+	mide.Canvas.getInstance().loadComposition(modules, composition.working.wires);
+	mide.Canvas.getInstance().show();
 };
 
 /**
  * @public
  */
-mashupIDE.core.Session.prototype.runComposition = function() {
-	mashupIDE.Canvas.getInstance();
+mide.core.Session.prototype.runComposition = function() {
+	mide.Canvas.getInstance();
 };
 
-mashupIDE.core.Session.prototype.registerEventHandlers = function(modules, wires) {
-	mashupIDE.PubSub.clear();
+mide.core.Session.prototype.registerEventHandlers = function(modules, wires) {
+	mide.PubSub.clear();
 	
 	for(var i = wires.length; i--; ) {
 		var wireConfig = wires[i];
-		mashupIDE.PubSub.connect(modules[wireConfig.src.moduleId].instanceId, 
+		mide.PubSub.connect(modules[wireConfig.src.moduleId].instanceId, 
 				wireConfig.src.terminal, 
 				modules[wireConfig.tgt.moduleId].instanceId, 
 				wireConfig.tgt.terminal);
 	}
 };
 
-mashupIDE.core.Session.prototype.getComponent = function(id, cb) {
-	mashupIDE.registry.ServerRegistry.getInstance().getComponent(id, function(descriptor){
-		var config = mashupIDE.core.Session.mapping[descriptor.getName()];
+mide.core.Session.prototype.getComponent = function(id, cb) {
+	mide.registry.ServerRegistry.getInstance().getComponent(id, function(descriptor){
+		var config = mide.core.Session.mapping[descriptor.getName()];
 
 		var instance = descriptor.getInstance();
 		if(config) {
-			instance.addDataProcessor(new mashupIDE.ServiceCallConverter(config));
+			instance.addDataProcessor(new mide.ServiceCallConverter(config));
 		}
 		
 		cb(instance);
 	});
 };
 
-mashupIDE.core.Session.mapping = {
+mide.core.Session.mapping = {
 			'GetResearcher': {
 				'researchers': {url: 'http://dev.liquidjournal.org:8081/resevalmash-api/resources/italianSource/getResearchers', 
 					overwriteResult: true

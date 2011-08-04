@@ -3,6 +3,6 @@
  */
 goog.provide('mashupIDE');
 
-goog.require('mashupIDE.editor.AbstractView');
+goog.require('mide.editor.AbstractView');
 goog.require('goog.ui.Component');
 goog.require('goog.object');

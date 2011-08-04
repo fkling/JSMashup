@@ -1,4 +1,4 @@
-goog.provide('mashupIDE.util.OptionMap');
+goog.provide('mide.util.OptionMap');
 
 
 /**
@@ -18,12 +18,12 @@ goog.provide('mashupIDE.util.OptionMap');
  *                              <code>opt_context</code>
  * @constructor
  */
-mashupIDE.util.OptionMap = function(options, opt_context, opt_extractorFunc) {
+mide.util.OptionMap = function(options, opt_context, opt_extractorFunc) {
 	
 	/**
 	 * Name-value map
 	 * 
-	 * @type {Object.<string, (string|mashupIDE.util.OptionMap)>}
+	 * @type {Object.<string, (string|mide.util.OptionMap)>}
 	 * @private
 	 */
 	this.optionsMap_ = {};
@@ -63,12 +63,12 @@ mashupIDE.util.OptionMap = function(options, opt_context, opt_extractorFunc) {
  *                              <code>opt_context</code>
  * @private
  */
-mashupIDE.util.OptionMap.prototype.parseOptions_ = function(options, context, extractor_func) {
+mide.util.OptionMap.prototype.parseOptions_ = function(options, context, extractor_func) {
 	options = options || [];
 	var value;
 	for(var i = options.length; i--; ) {
 		if(options[i].option) {
-			value = new mashupIDE.util.OptionMap(options[i].option, context, extractor_func);
+			value = new mide.util.OptionMap(options[i].option, context, extractor_func);
 		}
 		else {
 			value = options[i].value;
@@ -85,7 +85,7 @@ mashupIDE.util.OptionMap.prototype.parseOptions_ = function(options, context, ex
  * @param {function=} opt_extractor_func
  * @private
  */
-mashupIDE.util.OptionMap.prototype.resolveDvalue_ = function(dvalue, context, opt_extractor_func) {
+mide.util.OptionMap.prototype.resolveDvalue_ = function(dvalue, context, opt_extractor_func) {
 	return dvalue.replace(/{(.*?)}/, function(str, input) {
 		if(input in context) {
 			return (opt_extractor_func) ? opt_extractor_func(context[input], input, context) : context[input];
@@ -99,7 +99,7 @@ mashupIDE.util.OptionMap.prototype.resolveDvalue_ = function(dvalue, context, op
  * @return {string} the value
  * @public
  */
-mashupIDE.util.OptionMap.prototype.get = function(name) {
+mide.util.OptionMap.prototype.get = function(name) {
 	if(name in this.optionsMap_) {
 		return this.getValue_(this.optionsMap_[name]);
 	}
@@ -111,7 +111,7 @@ mashupIDE.util.OptionMap.prototype.get = function(name) {
  * @param {string} value
  * @public
  */
-mashupIDE.util.OptionMap.prototype.set = function(name, value) {
+mide.util.OptionMap.prototype.set = function(name, value) {
 	this.optionsMap_[name] = value;
 	this.optionsArray_.push({name:name, value:value});	
 };
@@ -120,7 +120,7 @@ mashupIDE.util.OptionMap.prototype.set = function(name, value) {
  * @param {string} name - option name
  * @public
  */
-mashupIDE.util.OptionMap.prototype.has = function(name) {
+mide.util.OptionMap.prototype.has = function(name) {
 	return name in this.optionsMap_;
 };
 
@@ -129,7 +129,7 @@ mashupIDE.util.OptionMap.prototype.has = function(name) {
  * @return {string}
  * @private
  */
-mashupIDE.util.OptionMap.prototype.getValue_ = function(value) {
+mide.util.OptionMap.prototype.getValue_ = function(value) {
 	return  /{.*?}/.test(value) ? this.resolveDvalue_(value, this.context_, this.extractorFunc_) : value;
 };
 
@@ -141,7 +141,7 @@ mashupIDE.util.OptionMap.prototype.getValue_ = function(value) {
  * @param {function(string, string, Object.<string, ?>, number} function to execute for every elemtn
  * @public
  */
-mashupIDE.util.OptionMap.prototype.each = function(callback, context) {
+mide.util.OptionMap.prototype.each = function(callback, context) {
 	var option;
 	for(var i = 0, l = this.optionsArray_.length; i < l; i++) {
 		option = this.optionsArray_[i];

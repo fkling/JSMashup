@@ -1,8 +1,8 @@
-goog.provide('mashupIDE.editor.EditorPane');
-goog.require('mashupIDE.editor.AbstractView');
-goog.require('mashupIDE.core.Component');
-goog.require('mashupIDE.editor.ComponentDialog');
-goog.require('mashupIDE.editor.MainToolbar');
+goog.provide('mide.editor.EditorPane');
+goog.require('mide.editor.AbstractView');
+goog.require('mide.core.Component');
+goog.require('mide.editor.ComponentDialog');
+goog.require('mide.editor.MainToolbar');
 
 goog.require('goog.array');
 goog.require('goog.dom');
@@ -11,10 +11,10 @@ goog.require('goog.ui.ToolbarButton');
 goog.require('goog.ui.ButtonSide');
 
 
-mashupIDE.editor.EditorPane = function(editor, sharedMemory) {
+mide.editor.EditorPane = function(editor, sharedMemory) {
 	this.sharedMemory = sharedMemory;
 	this.editor = editor;
-	this.componentDialog = new mashupIDE.editor.ComponentDialog();
+	this.componentDialog = new mide.editor.ComponentDialog();
 	
 	var elem = goog.dom.createElement('div');
 	
@@ -43,38 +43,38 @@ mashupIDE.editor.EditorPane = function(editor, sharedMemory) {
 	
 	// set up toolbars
 
-	var mainToolbar = new mashupIDE.editor.MainToolbar(mainToolbarNode)/*, 
-	    xmlEditorToolbar = new mashupIDE.editor.XmlEditorToolbar(xmlEditorToolbarNode, xmlEditor), 
-		jsEditorToolbar = new mashupIDE.editor.JsEditorToolbar(jsEditorToolbarNode, jsEditor);*/
+	var mainToolbar = new mide.editor.MainToolbar(mainToolbarNode)/*, 
+	    xmlEditorToolbar = new mide.editor.XmlEditorToolbar(xmlEditorToolbarNode, xmlEditor), 
+		jsEditorToolbar = new mide.editor.JsEditorToolbar(jsEditorToolbarNode, jsEditor);*/
 	
 	
-	goog.events.listen(mainToolbar, mashupIDE.editor.MainToolbar.Events.SAVE, function() {
+	goog.events.listen(mainToolbar, mide.editor.MainToolbar.Events.SAVE, function() {
 		this.editor.saveComponent(xmlEditor.getValue(), jsEditor.getValue());
 	}, null, this);
 	
-	goog.events.listen(mainToolbar, mashupIDE.editor.MainToolbar.Events.SHOW_COMPONENTS_DIALOG, function() {
+	goog.events.listen(mainToolbar, mide.editor.MainToolbar.Events.SHOW_COMPONENTS_DIALOG, function() {
 		this.componentDialog.show();
 	}, null, this);
 	
-	goog.events.listen(mainToolbar, mashupIDE.editor.MainToolbar.Events.NEW, function() {
+	goog.events.listen(mainToolbar, mide.editor.MainToolbar.Events.NEW, function() {
 		this.editor.createNewComponent();
 	}, null, this);
 
 	// set up dialog
 	
-	goog.events.listen(this.componentDialog, mashupIDE.editor.ComponentDialog.Events.COMPONENT_SELECTED, function(e) {
+	goog.events.listen(this.componentDialog, mide.editor.ComponentDialog.Events.COMPONENT_SELECTED, function(e) {
 		this.editor.loadComponent(e.component_id);
 		this.componentDialog.hide();
 	}, null, this);
 	
-	goog.events.listen(this.editor, mashupIDE.Editor.Events.COMPONENT_LOADED, function(e) {
+	goog.events.listen(this.editor, mide.Editor.Events.COMPONENT_LOADED, function(e) {
 		xmlEditor.setValue(e.descriptor.getXml());
 		jsEditor.setValue(e.descriptor.getJs());
 		xmlEditor.refresh();
 		jsEditor.refresh();
 	}, null);
 	
-	goog.events.listen(this.editor, mashupIDE.Editor.Events.COMPONENT_NEW, function(e) {
+	goog.events.listen(this.editor, mide.Editor.Events.COMPONENT_NEW, function(e) {
 		xmlEditor.setValue('');
 		jsEditor.setValue('');
 	}, null);
@@ -88,10 +88,10 @@ mashupIDE.editor.EditorPane = function(editor, sharedMemory) {
 	
 	goog.dom.append(elem, mainToolbarNode, 'Model:', xmlEditorNode, 'Implementation:', jsEditorNode);
 	
-	mashupIDE.editor.AbstractView.call(this, elem, 'Editor');
+	mide.editor.AbstractView.call(this, elem, 'Editor');
 	
 	xmlEditor.refresh();
 	jsEditor.refresh();
 };
 
-goog.inherits(mashupIDE.editor.EditorPane, mashupIDE.editor.AbstractView);
+goog.inherits(mide.editor.EditorPane, mide.editor.AbstractView);

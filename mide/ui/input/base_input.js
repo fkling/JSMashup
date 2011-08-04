@@ -1,13 +1,13 @@
-goog.provide('mashupIDE.ui.input.BaseInput');
+goog.provide('mide.ui.input.BaseInput');
 goog.require('goog.ui.Component');
 
 /**
- * @param {mashupIDE.OptionMap}
+ * @param {mide.OptionMap}
  *            options
  * @param opt_domHelper
  * @constructor
  */
-mashupIDE.ui.input.BaseInput = function(options, events, opt_domHelper) {
+mide.ui.input.BaseInput = function(options, events, opt_domHelper) {
 	goog.ui.Component.call(this, opt_domHelper);
 
 	this.options = options;
@@ -15,42 +15,42 @@ mashupIDE.ui.input.BaseInput = function(options, events, opt_domHelper) {
 	this.eh = new goog.events.EventHandler(this);
 };
 
-goog.inherits(mashupIDE.ui.input.BaseInput, goog.ui.Component);
+goog.inherits(mide.ui.input.BaseInput, goog.ui.Component);
 
 /**
  * @type {Element}
  * @protected
  */
-mashupIDE.ui.input.BaseInput.prototype.label = null;
+mide.ui.input.BaseInput.prototype.label = null;
 
 /**
  * @type {Element}
  * @protected
  */
-mashupIDE.ui.input.BaseInput.prototype.input = null;
+mide.ui.input.BaseInput.prototype.input = null;
 
 /**
  * @type {Array}
  * @protected
  */
-mashupIDE.ui.input.BaseInput.prototype.options = null;
+mide.ui.input.BaseInput.prototype.options = null;
 
 /**
  * @type {Array}
  * @private
  */
-mashupIDE.ui.input.BaseInput.prototype.events = null;
+mide.ui.input.BaseInput.prototype.events = null;
 
 /**
  * @type {goog.events.EventHandler}
  * @protected
  */
-mashupIDE.ui.input.BaseInput.prototype.eh = null;
+mide.ui.input.BaseInput.prototype.eh = null;
 
 /**
  * @override
  */
-mashupIDE.ui.input.BaseInput.prototype.createDom = function() {
+mide.ui.input.BaseInput.prototype.createDom = function() {
 	var elem = this.element_ = this.dom_.createElement('div');
 	
 	this.label = this.dom_.createDom('label', 
@@ -65,8 +65,8 @@ mashupIDE.ui.input.BaseInput.prototype.createDom = function() {
 /**
  * @override
  */
-mashupIDE.ui.input.BaseInput.prototype.enterDocument = function() {
-	mashupIDE.ui.input.BaseInput.superClass_.enterDocument.call(this);
+mide.ui.input.BaseInput.prototype.enterDocument = function() {
+	mide.ui.input.BaseInput.superClass_.enterDocument.call(this);
 	for ( var i = 0, l = this.events.length; i < l; i++) {
 		this.attachEventHandler(this.events[i]);
 	}
@@ -76,12 +76,12 @@ mashupIDE.ui.input.BaseInput.prototype.enterDocument = function() {
  * @param {Array} events
  * @private
  */
-mashupIDE.ui.input.BaseInput.prototype.attachEventHandler = function(event) {
+mide.ui.input.BaseInput.prototype.attachEventHandler = function(event) {
 	this.eh.listen(this, goog.events.EventType[event.type], function(event) {
 		var act, action;
 		for (var j = 0, k = event.action.length; j < k; j++) {
 			act = event.action[j];
-			action = mashupIDE.ui.action.ActionFactory.get(act.name, new mashupIDE.util.OptionMap(act.option));
+			action = mide.ui.action.ActionFactory.get(act.name, new mide.util.OptionMap(act.option));
 			action.setConfigurationDialog(this.getParent());
 			action.perform();
 			this.dispatchEvent({type: event.type});
@@ -97,7 +97,7 @@ mashupIDE.ui.input.BaseInput.prototype.attachEventHandler = function(event) {
  * 
  * @protected
  */
-mashupIDE.ui.input.BaseInput.prototype.createInputNode = function() {
+mide.ui.input.BaseInput.prototype.createInputNode = function() {
 
 };
 
@@ -107,7 +107,7 @@ mashupIDE.ui.input.BaseInput.prototype.createInputNode = function() {
  * 
  * @protected
  */
-mashupIDE.ui.input.BaseInput.prototype.update = function() {
+mide.ui.input.BaseInput.prototype.update = function() {
 };
 
 /**
@@ -115,7 +115,7 @@ mashupIDE.ui.input.BaseInput.prototype.update = function() {
  * 
  * @protected
  */
-mashupIDE.ui.input.BaseInput.prototype.getValue = function() {
+mide.ui.input.BaseInput.prototype.getValue = function() {
 };
 
 /**
@@ -123,5 +123,5 @@ mashupIDE.ui.input.BaseInput.prototype.getValue = function() {
  * 
  * @protected
  */
-mashupIDE.ui.input.BaseInput.prototype.etValue = function() {
+mide.ui.input.BaseInput.prototype.etValue = function() {
 };

@@ -1,5 +1,5 @@
-goog.provide('mashupIDE.core.net');
-goog.provide('mashupIDE.config.net');
+goog.provide('mide.core.net');
+goog.provide('mide.config.net');
 
 goog.require('goog.net.XhrIo');
 goog.require('goog.net.XhrIoPool');
@@ -11,15 +11,15 @@ goog.require('goog.object');
  * Default configuration.
  * @type {Object}
  */
-mashupIDE.config.net = {
+mide.config.net = {
 	PROXY_URL: ''
 };
 
-mashupIDE.core.net.PROXY_URL = 'http://localhost:8080/proxy';
+mide.core.net.PROXY_URL = 'http://localhost:8080/proxy';
 
-mashupIDE.core.net.get = function(url, callback, parameters) {
+mide.core.net.get = function(url, callback, parameters) {
 	var payload = goog.uri.utils.appendParamsFromMap(url, parameters);
-	var url = goog.uri.utils.appendParamsFromMap(mashupIDE.config.net.PROXY_URL, {url: payload});
+	var url = goog.uri.utils.appendParamsFromMap(mide.config.net.PROXY_URL, {url: payload});
 	goog.net.XhrIo.send(url, function(e) {
 		console.log(this.getResponseJson());
 	    callback(this.getResponseJson());
@@ -35,7 +35,7 @@ mashupIDE.core.net.get = function(url, callback, parameters) {
  * @param {{url: string, parameters: Object, 
  *          data: (Object|string), method: string, callback: function}} options_
  */
-mashupIDE.core.net.makeRequest = function(options_) {
+mide.core.net.makeRequest = function(options_) {
 	var options = {
 			url: '',
 			parameters: {},
@@ -59,7 +59,7 @@ mashupIDE.core.net.makeRequest = function(options_) {
 			}
 		}
 		
-		mashupIDE.core.net.getXhr(function(xhr){
+		mide.core.net.getXhr(function(xhr){
 			var ek, sk;
 			sk = goog.events.listenOnce(xhr, goog.net.EventType.SUCCESS, function(e){				
 				if(options.success) options.success.call(options.context, e);
@@ -76,7 +76,7 @@ mashupIDE.core.net.makeRequest = function(options_) {
 			});
 			
 			goog.events.listenOnce(xhr, goog.net.EventType.READY, function(e){
-				mashupIDE.core.net.releaseXhr(xhr);
+				mide.core.net.releaseXhr(xhr);
 			});
 			
 			options.url = goog.uri.utils.appendParamsFromMap(options.url, options.parameters);
@@ -85,25 +85,25 @@ mashupIDE.core.net.makeRequest = function(options_) {
 	}
 	
 	//var payload = goog.uri.utils.appendParamsFromMap(url, get_data);
-	//var url = goog.uri.utils.appendParamsFromMap(mashupIDE.core.net.PROXY_URL, {url: payload});
+	//var url = goog.uri.utils.appendParamsFromMap(mide.core.net.PROXY_URL, {url: payload});
 };
 
 /**
  * @protected
  */
-mashupIDE.core.net.getXhr = function(callback) {
-	if(!mashupIDE.core.net.pool) {
-		mashupIDE.core.net.pool = new goog.net.XhrIoPool();
+mide.core.net.getXhr = function(callback) {
+	if(!mide.core.net.pool) {
+		mide.core.net.pool = new goog.net.XhrIoPool();
 	}
-	mashupIDE.core.net.pool.getObject(callback);
+	mide.core.net.pool.getObject(callback);
 };
 
 /**
  * @protected
  */
-mashupIDE.core.net.releaseXhr = function(xhr) {
-	if(mashupIDE.core.net.pool) {
-		mashupIDE.core.net.pool.releaseObject(xhr);
+mide.core.net.releaseXhr = function(xhr) {
+	if(mide.core.net.pool) {
+		mide.core.net.pool.releaseObject(xhr);
 	}
 };
 
@@ -116,7 +116,7 @@ mashupIDE.core.net.releaseXhr = function(xhr) {
  * @param {string} url the URL to load
  * @param {function} callback
  */
-mashupIDE.core.net.loadScript = function(url, callback) {
+mide.core.net.loadScript = function(url, callback) {
 	var script = document.createElement( "script" ),
 		head = document.head || document.getElementsByTagName( "head" )[0] || document.documentElement;
 

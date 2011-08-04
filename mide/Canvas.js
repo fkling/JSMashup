@@ -1,26 +1,26 @@
-goog.provide('mashupIDE.Canvas');
+goog.provide('mide.Canvas');
 goog.require('goog.dom');
 
 
 /**
  * @constructor
  */
-mashupIDE.Canvas = function(op_parent) {
+mide.Canvas = function(op_parent) {
 	
 };
 
-mashupIDE.Canvas.instance_ = null;
+mide.Canvas.instance_ = null;
 
-mashupIDE.Canvas.getInstance = function() {
-	return mashupIDE.Canvas.instance_ || (mashupIDE.Canvas.instance_ = new mashupIDE.Canvas());
+mide.Canvas.getInstance = function() {
+	return mide.Canvas.instance_ || (mide.Canvas.instance_ = new mide.Canvas());
 };
 
-mashupIDE.Canvas.prototype.loadComposition = function(containers, wires) {
+mide.Canvas.prototype.loadComposition = function(containers, wires) {
 	this.containers_ = containers;
 	this.wires_ = wires;
 };
 
-mashupIDE.Canvas.prototype.show = function() {
+mide.Canvas.prototype.show = function() {
 	if(!this.container_) {
 		!this.createContainer();
 	}
@@ -43,7 +43,7 @@ mashupIDE.Canvas.prototype.show = function() {
 	}
 };
 
-mashupIDE.Canvas.prototype.createContainer = function() {
+mide.Canvas.prototype.createContainer = function() {
 	var container = this.container_ = goog.dom.createDom('div', {'id': 'mashup_canvas'});
 	var closeButton = goog.dom.createDom('div', {'class':'close'}, goog.dom.createTextNode("X"));
     goog.events.listen(closeButton, 'click', function() {

@@ -1,10 +1,10 @@
-goog.provide('mashupIDE.Editor');
+goog.provide('mide.Editor');
 
-goog.require('mashupIDE.editor.EditorPane');
-goog.require('mashupIDE.editor.PreviewPane');
-goog.require('mashupIDE.core.ComponentDescriptor');
-goog.require('mashupIDE.core.Session');
-goog.require('mashupIDE.core.registry.ServerRegistry');
+goog.require('mide.editor.EditorPane');
+goog.require('mide.editor.PreviewPane');
+goog.require('mide.core.ComponentDescriptor');
+goog.require('mide.core.Session');
+goog.require('mide.core.registry.ServerRegistry');
 
 goog.require('goog.ui.Component');
 
@@ -12,37 +12,37 @@ goog.require('goog.ui.Component');
 /**
  * @constructor
  */
-mashupIDE.Editor = function() {
+mide.Editor = function() {
 	goog.ui.Component.call(this);
 	
 	var self = this;
-	this.session = mashupIDE.core.Session.start();
-	this.registry = mashupIDE.core.registry.getInstance();
+	this.session = mide.core.Session.start();
+	this.registry = mide.core.registry.getInstance();
 };
 
-goog.inherits(mashupIDE.Editor, goog.ui.Component);
+goog.inherits(mide.Editor, goog.ui.Component);
 
 /**
- * @type {mashupIDE.core.Registry}
+ * @type {mide.core.Registry}
  */
-mashupIDE.Editor.prototype.registry = null;
+mide.Editor.prototype.registry = null;
 
 /**
- * @type {mashupIDE.core.Session}
+ * @type {mide.core.Session}
  */
-mashupIDE.Editor.prototype.session = null;
+mide.Editor.prototype.session = null;
 
 
 /**
  * @public
  */
-mashupIDE.Editor.prototype.enterDocument = function() {
+mide.Editor.prototype.enterDocument = function() {
 	var self = this;
 	this.registry.load(null, function() {
 		var sharedMemory = {};
 		self.tabs = new goog.ui.TabPane(self.element_);
-		self.tabs.addPage(new mashupIDE.editor.EditorPane(self, sharedMemory));
-		self.tabs.addPage(new mashupIDE.editor.PreviewPane(self, sharedMemory));
+		self.tabs.addPage(new mide.editor.EditorPane(self, sharedMemory));
+		self.tabs.addPage(new mide.editor.PreviewPane(self, sharedMemory));
 		
 		goog.events.listen(self.tabs, goog.ui.TabPane.Events.CHANGE, function(e) {
 			this.dispatchEvent(e);
@@ -57,14 +57,14 @@ mashupIDE.Editor.prototype.enterDocument = function() {
 /**
  * @public
  */
-mashupIDE.Editor.prototype.saveComponent = function(xml, javascript) {
+mide.Editor.prototype.saveComponent = function(xml, javascript) {
 	try {
-		var descr = new mashupIDE.core.ComponentDescriptor();
+		var descr = new mide.core.ComponentDescriptor();
 		descr.setXml(xml);
 		descr.setJs(javascript);
 		
 		this.registry.saveComponent(descr, function(response) {
-			self.dispatchEvent({type: mashupIDE.Editor.Events.COMPONENT_SAVED, descriptor: descr});
+			self.dispatchEvent({type: mide.Editor.Events.COMPONENT_SAVED, descriptor: descr});
 			alert('Saved succesfully');
 		},function(response){
 			alert('Save failed');
@@ -78,10 +78,10 @@ mashupIDE.Editor.prototype.saveComponent = function(xml, javascript) {
 /**
  * @public
  */
-mashupIDE.Editor.prototype.loadComponent = function(id) {
+mide.Editor.prototype.loadComponent = function(id) {
 	var self = this;
 	this.registry.getComponentDescriptorById(id, function(descriptor) {
-		self.dispatchEvent({type: mashupIDE.Editor.Events.COMPONENT_LOADED, descriptor: descriptor});
+		self.dispatchEvent({type: mide.Editor.Events.COMPONENT_LOADED, descriptor: descriptor});
 	},function(response){
 		alert('Couldn\'t find ' + id);
 	});
@@ -90,11 +90,11 @@ mashupIDE.Editor.prototype.loadComponent = function(id) {
 /**
  * @public
  */
-mashupIDE.Editor.prototype.createNewComponent = function(id) {
-	this.dispatchEvent({type: mashupIDE.Editor.Events.COMPONENT_NEW});
+mide.Editor.prototype.createNewComponent = function(id) {
+	this.dispatchEvent({type: mide.Editor.Events.COMPONENT_NEW});
 };
 
-goog.object.extend(mashupIDE.Editor.Events || (mashupIDE.Editor.Events = {}), { 
+goog.object.extend(mide.Editor.Events || (mide.Editor.Events = {}), { 
 	COMPONENT_LOADED: 'component_loaded',
 	COMPONENT_SAVED: 'component_saved',
 	COMPONENT_NEW: 'component_new'

@@ -1,19 +1,19 @@
-goog.provide('mashupIDE.ServiceCallConverter');
-goog.require('mashupIDE.core.net');
+goog.provide('mide.ServiceCallConverter');
+goog.require('mide.core.net');
 
 goog.require('goog.dom');
 
-mashupIDE.ServiceCallConverter = function(config) {
+mide.ServiceCallConverter = function(config) {
 	this.config = config || {};
 	this.data = {};
 	this.output = goog.dom.createElement('div');
 };
 
-mashupIDE.ServiceCallConverter.prototype.setComponentInstance = function(component) {
+mide.ServiceCallConverter.prototype.setComponentInstance = function(component) {
 	this.component = component;
 };
 
-mashupIDE.ServiceCallConverter.prototype.perform = function(operation, params, next) {
+mide.ServiceCallConverter.prototype.perform = function(operation, params, next) {
 	var self = this,
 		config = this.config[operation];
 	this.data[operation] = {};
@@ -23,11 +23,11 @@ mashupIDE.ServiceCallConverter.prototype.perform = function(operation, params, n
 		this.data[operation].cacheKey = controlData.cacheKey;
 	}
 	else {
-		this.data[operation].cacheKey = mashupIDE.Session.getInstance().getId() + this.component.getId();
+		this.data[operation].cacheKey = mide.Session.getInstance().getId() + this.component.getId();
 	}
 	
 	if(config && config.url) {
-		mashupIDE.core.net.makeRequest(config.url, {key: this.data[operation].cacheKey, data: 'yes', fetch: 10}, null, function(response) {
+		mide.core.net.makeRequest(config.url, {key: this.data[operation].cacheKey, data: 'yes', fetch: 10}, null, function(response) {
 			self.output.innerHTML = JSON.stringify(response);
 			self.data[operation].cacheKey = response.cacheKey;
 			self.data[operation].dataObject = response.dataObject;
@@ -41,7 +41,7 @@ mashupIDE.ServiceCallConverter.prototype.perform = function(operation, params, n
 	}
 };
 
-mashupIDE.ServiceCallConverter.prototype.triggerEvent = function(event, params, next) {
+mide.ServiceCallConverter.prototype.triggerEvent = function(event, params, next) {
 	var data = this.data[event] || this.data[event+'Output'] || this.data[event.replace('Output', '')] || {};
 	params = {
 			controlData: {cacheKey: data.cacheKey},
@@ -52,13 +52,13 @@ mashupIDE.ServiceCallConverter.prototype.triggerEvent = function(event, params, 
 };
 
 
-mashupIDE.ServiceCallConverter.prototype.makeRequest = function(name, url, getParams, postParams, next) {
+mide.ServiceCallConverter.prototype.makeRequest = function(name, url, getParams, postParams, next) {
 	var config = this.config[name];
 	
 	
 	if(config && config.url) {
 		this.data[name] = {};
-		this.data[name].cacheKey =  mashupIDE.Session.getInstance().getId() + this.component.getId();
+		this.data[name].cacheKey =  mide.Session.getInstance().getId() + this.component.getId();
 		
 		url = config.url;
 		getParams.key = this.data[name].cacheKey;
@@ -68,7 +68,7 @@ mashupIDE.ServiceCallConverter.prototype.makeRequest = function(name, url, getPa
 	next(name, url, getParams, postParams);
 };
 
-mashupIDE.ServiceCallConverter.prototype.makeResponse = function(name, response) {
+mide.ServiceCallConverter.prototype.makeResponse = function(name, response) {
 		this.output.innerHTML = JSON.stringify(response);
 		this.data[name].cacheKey = response.cacheKey;
 		this.data[name].dataObject = response.dataObject;
@@ -76,6 +76,6 @@ mashupIDE.ServiceCallConverter.prototype.makeResponse = function(name, response)
 		return response.dataObject;
 };
 
-mashupIDE.ServiceCallConverter.prototype.getContentNode = function() {
+mide.ServiceCallConverter.prototype.getContentNode = function() {
 	return this.output;
 };

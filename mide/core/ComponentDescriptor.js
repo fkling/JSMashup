@@ -1,88 +1,85 @@
-goog.provide('mashupIDE.core.ComponentDescriptor');
-goog.require('mashupIDE.core.Component');
-goog.require('mashupIDE.parser');
+goog.provide('mide.core.ComponentDescriptor');
+goog.require('mide.core.Component');
+goog.require('mide.parser');
 
 goog.require('goog.array');
 goog.require('goog.string');
 
 /**
- * The basic structure for a mashup component
+ * A mashup component descriptor. Once passed an XML Model file,
+ * an instance of this class provides meta information about
+ * a component and a method to create component instances.
  * 
- * @param {Object} config the parsed configuration from XML
- * @param {Object=} opt_id  id of the the element in the composition
- * @param {string=} opt_xml  the XML configuration the component was created from
- * @param {Object=} opt_domHelper
  * @constructor
  */
-mashupIDE.core.ComponentDescriptor = function() {
+mide.core.ComponentDescriptor = function() {
 	this.operations = {};
 	this.events = {};
 	this.parameters = {};
 };
 
-
-
 /**
  * @type {Object}
- * @public
+ * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.id = null;
+mide.core.ComponentDescriptor.prototype.id = null;
 
 
 /**
  * @type {string}
- * @public
+ * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.name = '';
+mide.core.ComponentDescriptor.prototype.name = '';
 
 /**
  * @type {string}
- * @public
+ * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.xml = '';
+mide.core.ComponentDescriptor.prototype.xml = '';
 
 /**
  * @type {string}
- * @public
+ * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.js = '';
+mide.core.ComponentDescriptor.prototype.js = '';
 
 /**
  * @type {Object.<string, {finished: boolean, requiredInputs: Array.<string>, depends: Array.<string>}>}
  * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.operations = null;
+mide.core.ComponentDescriptor.prototype.operations = null;
 
 /**
  * @type {Object.<string, {depends: Array.<string>}>}
  * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.events = null;
+mide.core.ComponentDescriptor.prototype.events = null;
 
 /**
  * @type {Object.<string, string>}
  * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.calls = null;
+mide.core.ComponentDescriptor.prototype.calls = null;
 
 
 /**
  * @type {Object.<string, Object>}
  * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.parameters = null;
+mide.core.ComponentDescriptor.prototype.parameters = null;
 
 
 /**
+ * Set the XML model file. All information about a component are parsed
+ * from this file.
  * 
  * @param {string} xml the XML configuration to create the component from
- * @param {Object=} opt_id id of the the element in the composition
- * @param opt_domHelper
+ * @public
  */
-mashupIDE.core.ComponentDescriptor.prototype.setXml = function(xml) {
+mide.core.ComponentDescriptor.prototype.setXml = function(xml) {
 	this.xml = xml;
 	
-	var config = mashupIDE.parser.parse(xml).component[0];
+	var config = mide.parser.parse(xml).component[0];
 	
 	this.name = config.name;
 	this.autorun = config.autorun;
@@ -97,40 +94,75 @@ mashupIDE.core.ComponentDescriptor.prototype.setXml = function(xml) {
 	this.parameters = config.configuration[0].input || [];
 };
 
-mashupIDE.core.ComponentDescriptor.prototype.getXml = function(xml) {
+/**
+ * @return {string} containing XML
+ * @public
+ */
+mide.core.ComponentDescriptor.prototype.getXml = function() {
 	return this.xml;
 };
 
-mashupIDE.core.ComponentDescriptor.prototype.setJs = function(js) {
+/**
+ * Sets the implementation of the component.
+ * 
+ * @param {string} js the implementation
+ * @public
+ */
+mide.core.ComponentDescriptor.prototype.setJs = function(js) {
 	this.js = js;
 };
 
-
-mashupIDE.core.ComponentDescriptor.prototype.getJs = function() {
+/**
+ * @return {string} containing JavaScript
+ * @public
+ */
+mide.core.ComponentDescriptor.prototype.getJs = function() {
 	return this.js;
 };
 
-
-mashupIDE.core.ComponentDescriptor.prototype.getId = function() {
+/**
+ * @return {string}
+ */
+mide.core.ComponentDescriptor.prototype.getId = function() {
 	return this.id;
 };
 
-
-mashupIDE.core.ComponentDescriptor.prototype.setId = function(id) {
+/**
+ * @param {string} id of the component
+ */
+mide.core.ComponentDescriptor.prototype.setId = function(id) {
 	this.id = id;
 };
 
-mashupIDE.core.ComponentDescriptor.prototype.getInstance = function(opt_instanceId, opt_config, opt_domHelper) {
-	var instance = new mashupIDE.core.Component(this, opt_instanceId, opt_config, opt_domHelper);
+
+/**
+ * Returns the descriptive name as provided in the model file.
+ * 
+ * @return {string}
+ */
+mide.core.ComponentDescriptor.prototype.getName = function() {
+	return this.name;
+};
+
+
+/**
+ * Get an instance of the component defined by this descriptor.
+ * 
+ * @param {string} opt_instanceId The ID which should be assigned to the instance. Used
+ *                 when a instance is created for a stored composition.
+ * @param {Object} opt_config Configuration of the instance. Like the with the ID, this is used
+ *                 to restore the configuration of a stored component instance.
+ * @return {!mide.core.Component}
+ * 
+ * @public
+ */
+mide.core.ComponentDescriptor.prototype.getInstance = function(opt_instanceId, opt_config) {
+	var instance = new mide.core.Component(this, opt_instanceId, opt_config);
 	
 	var f = new Function("exports", this.js);
 	f(instance);
 	
 	return instance;
-};
-
-mashupIDE.core.ComponentDescriptor.prototype.getName = function() {
-	return this.name;
 };
 
 
@@ -141,7 +173,7 @@ mashupIDE.core.ComponentDescriptor.prototype.getName = function() {
  * @param {Array} operations
  * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.configureOperations = function(operations) {
+mide.core.ComponentDescriptor.prototype.configureOperations = function(operations) {
 	var i, j, op,       // loop variables
 		required, inputs;
 		
@@ -170,25 +202,28 @@ mashupIDE.core.ComponentDescriptor.prototype.configureOperations = function(oper
 	}
 };
 
-mashupIDE.core.ComponentDescriptor.prototype.getOperations = function() {
+/**
+ * 
+ */
+mide.core.ComponentDescriptor.prototype.getOperations = function() {
 	return this.operations;
 };
 
-mashupIDE.core.ComponentDescriptor.prototype.getEvents = function() {
+mide.core.ComponentDescriptor.prototype.getEvents = function() {
 	return this.events;
 };
 
-mashupIDE.core.ComponentDescriptor.prototype.getParameters = function() {
+mide.core.ComponentDescriptor.prototype.getParameters = function() {
 	return this.parameters;
 };
 
 /**
- * Sets up the meta data to handle events.
+ * Sets up the meta data to handle calls.
  * 
  * @param {Array} event
  * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.configureCalls = function(calls) {
+mide.core.ComponentDescriptor.prototype.configureCalls = function(calls) {
 	var i, name;
 
 	for(i = calls.length; i--; ) {
@@ -207,7 +242,7 @@ mashupIDE.core.ComponentDescriptor.prototype.configureCalls = function(calls) {
  * @param {Array} event
  * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.configureEvents = function(events) {
+mide.core.ComponentDescriptor.prototype.configureEvents = function(events) {
 	var i;
 		
 	for(i = events.length; i--; ) {
@@ -221,7 +256,7 @@ mashupIDE.core.ComponentDescriptor.prototype.configureEvents = function(events) 
  * @param {Object} event
  * @private
  */
-mashupIDE.core.ComponentDescriptor.prototype.configureEvent = function(ev) {
+mide.core.ComponentDescriptor.prototype.configureEvent = function(ev) {
 	this.events[ev.ref] = {
 		depends: (ev.dependsOn ? goog.array.map(ev.dependsOn.split(','), goog.string.trim) : [])
 	};

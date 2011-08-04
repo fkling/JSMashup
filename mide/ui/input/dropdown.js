@@ -1,6 +1,6 @@
-goog.provide('mashupIDE.ui.input.Dropdown');
-goog.require('mashupIDE.ui.input.BaseInput');
-goog.require('mashupIDE.ui.input.InputFactory');
+goog.provide('mide.ui.input.Dropdown');
+goog.require('mide.ui.input.BaseInput');
+goog.require('mide.ui.input.InputFactory');
 
 goog.require('goog.dom');
 
@@ -9,16 +9,16 @@ goog.require('goog.dom');
  * 
  * @inheritDoc
  */
-mashupIDE.ui.input.Dropdown = function(options, events, opt_domHelper) {
-	mashupIDE.ui.input.BaseInput.call(this, options, events, opt_domHelper);
+mide.ui.input.Dropdown = function(options, events, opt_domHelper) {
+	mide.ui.input.BaseInput.call(this, options, events, opt_domHelper);
 };
 
-goog.inherits(mashupIDE.ui.input.Dropdown, mashupIDE.ui.input.BaseInput);
+goog.inherits(mide.ui.input.Dropdown, mide.ui.input.BaseInput);
 
 /**
  * @override
  */
-mashupIDE.ui.input.Dropdown.prototype.createInputNode = function() {
+mide.ui.input.Dropdown.prototype.createInputNode = function() {
 	this.input = this.dom_.createDom('select', {name: this.options.get('name')});
 	this.eh.listen(this.input, goog.events.EventType.CHANGE, function() {
 		this.dispatchEvent('change');
@@ -29,7 +29,7 @@ mashupIDE.ui.input.Dropdown.prototype.createInputNode = function() {
 /**
  * @override
  */
-mashupIDE.ui.input.Dropdown.prototype.update = function() {
+mide.ui.input.Dropdown.prototype.update = function() {
 	goog.dom.removeChildren(this.input);
 	goog.dom.append(this.input, goog.dom.createDom('option', {value: 0}, goog.dom.createTextNode('Updating...')));
 	
@@ -37,7 +37,7 @@ mashupIDE.ui.input.Dropdown.prototype.update = function() {
 	if(this.options.has('url')) {
 		var valueMapper = this.options.get('valueMapper'),
 			idMapper =  this.options.get('idMapper');
-		mashupIDE.net.get(this.options.get('url'), function(data) {
+		mide.net.get(this.options.get('url'), function(data) {
 			goog.dom.removeChildren(self.input);
 			goog.array.forEach(data, function(datum){
 				var option = goog.dom.createDom('option', {value: datum[idMapper]}, goog.dom.createTextNode(datum[valueMapper]));
@@ -59,14 +59,14 @@ mashupIDE.ui.input.Dropdown.prototype.update = function() {
 /**
  * @override
  */
-mashupIDE.ui.input.Dropdown.prototype.getValue = function() {
+mide.ui.input.Dropdown.prototype.getValue = function() {
 	return {value: this.input.value, display: ''};
 };
 
 /**
  * @override
  */
-mashupIDE.ui.input.Dropdown.prototype.setValue = function(value) {
+mide.ui.input.Dropdown.prototype.setValue = function(value) {
 	if(!this.input) this.createInputNode();
 	this.lastDisplay_ = value.display;
 	this.lastValue_ = value.value;
@@ -77,4 +77,4 @@ mashupIDE.ui.input.Dropdown.prototype.setValue = function(value) {
 
 
 
-mashupIDE.ui.input.InputFactory.registerInput('dropdown', mashupIDE.ui.input.Dropdown);
+mide.ui.input.InputFactory.registerInput('dropdown', mide.ui.input.Dropdown);

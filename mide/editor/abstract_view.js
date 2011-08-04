@@ -1,12 +1,12 @@
-goog.provide('mashupIDE.editor.AbstractView');
+goog.provide('mide.editor.AbstractView');
 goog.require('goog.ui.TabPane.TabPage');
 
-mashupIDE.editor.AbstractView = function(elem, title) {
+mide.editor.AbstractView = function(elem, title) {
 	 goog.ui.TabPane.TabPage.call(this, elem, title);
 };
 
-goog.inherits(mashupIDE.editor.AbstractView, goog.ui.TabPane.TabPage);
+goog.inherits(mide.editor.AbstractView, goog.ui.TabPane.TabPage);
 
 
-mashupIDE.editor.AbstractView.prototype.update = function() {
+mide.editor.AbstractView.prototype.update = function() {
 };

@@ -1,30 +1,30 @@
-goog.provide('mashupIDE.OperationHistory');
+goog.provide('mide.OperationHistory');
 
-mashupIDE.OperationHistory = function(componentInstance) {
+mide.OperationHistory = function(componentInstance) {
 	this.instance = componentInstance;
 	this.history = [];
 };
 
 /**
- * @type {mashupIDE.Component}
+ * @type {mide.Component}
  * @private
  */
-mashupIDE.OperationHistory.prototype.componentInstance = null;
+mide.OperationHistory.prototype.componentInstance = null;
 
 /**
- * @type {mashupIDE.Component}
+ * @type {mide.Component}
  * @private
  */
-mashupIDE.OperationHistory.prototype.history = null;
+mide.OperationHistory.prototype.history = null;
 
 
 
-mashupIDE.OperationHistory.prototype.push = function(name, params) {
+mide.OperationHistory.prototype.push = function(name, params) {
 	this.purge(name);
 	this.history.push({name: name, params: params});
 };
 
-mashupIDE.OperationHistory.prototype.getSize = function(name, params) {
+mide.OperationHistory.prototype.getSize = function(name, params) {
 	return this.history.length;
 };
 
@@ -33,7 +33,7 @@ mashupIDE.OperationHistory.prototype.getSize = function(name, params) {
  * 
  * @param {string} name of operation
  */
-mashupIDE.OperationHistory.prototype.purge = function(name) {
+mide.OperationHistory.prototype.purge = function(name) {
 	for(var i = this.history.length;i--;) {
 		if(this.history[i].name === name) {
 			this.history.splice(i, 1);
@@ -43,7 +43,7 @@ mashupIDE.OperationHistory.prototype.purge = function(name) {
 
 
 
-mashupIDE.OperationHistory.prototype.run = function(name, params) {
+mide.OperationHistory.prototype.run = function(name, params) {
 	for(var i = 0, l = this.history.length; i > l; i++) {
 		this.instance.perform(name, params);
 	}

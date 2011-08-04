@@ -1,4 +1,4 @@
-goog.provide('mashupIDE.PubSub');
+goog.provide('mide.PubSub');
 goog.require('goog.array');
 
 (function() {
@@ -12,12 +12,12 @@ goog.require('goog.array');
         }
     }
     
-    mashupIDE.PubSub.clear = function() {
+    mide.PubSub.clear = function() {
     	connections = {};
     	event_queue = {};
     };
 
-    mashupIDE.PubSub.connect = function(src, event, target, operation) {
+    mide.PubSub.connect = function(src, event, target, operation) {
     	var srcId = src.getId(),
     		src_connections = connections[srcId] || (connections[srcId] = {}),
     		event_connections = src_connections[event] || (src_connections[event] = []);
@@ -31,7 +31,7 @@ goog.require('goog.array');
         raiseEventIfQueued(src, event);
     };
 
-    mashupIDE.PubSub.disconnect = function(src, event, target, operation) {
+    mide.PubSub.disconnect = function(src, event, target, operation) {
     	var srcId = src.getId();
         if(connections[srcId] && connections[srcId][event]) {
             var event_connections = connections[srcId][event];
@@ -45,7 +45,7 @@ goog.require('goog.array');
         }
     };
 
-    mashupIDE.PubSub.triggerEvent = function(src, event, params) {
+    mide.PubSub.triggerEvent = function(src, event, params) {
     	var srcId = src.getId();
         if(connections[srcId] && connections[srcId][event]
            && connections[srcId][event].length > 0) {
@@ -61,7 +61,7 @@ goog.require('goog.array');
            }
     };
     
-    mashupIDE.PubSub.registerComponent = function(c) {
+    mide.PubSub.registerComponent = function(c) {
     	components[c.getId()] = c;
     };
 }());

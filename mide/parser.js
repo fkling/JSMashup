@@ -1,12 +1,12 @@
-goog.provide('mashupIDE.parser');
+goog.provide('mide.parser');
 goog.require('goog.dom.xml');
 
-mashupIDE.parser.parse = function(xmlString) {
+mide.parser.parse = function(xmlString) {
 	var doc = goog.dom.xml.loadXml(xmlString);
-	return mashupIDE.parser.parseNode_(doc.firstChild);
+	return mide.parser.parseNode_(doc.firstChild);
 };
 
-mashupIDE.parser.parseNode_ = function(node) {
+mide.parser.parseNode_ = function(node) {
 	var obj = {
 			'#text': ''
 	};
@@ -21,7 +21,7 @@ mashupIDE.parser.parseNode_ = function(node) {
 			if(!(child.nodeName in obj)) {
 				obj[child.nodeName] = [];
 			}
-			obj[child.nodeName].push(mashupIDE.parser.parseNode_(child));
+			obj[child.nodeName].push(mide.parser.parseNode_(child));
 		}
 		else if(child.nodeType) {
 			obj['#text'] += child.nodeValue;

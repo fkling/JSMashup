@@ -1,8 +1,8 @@
-goog.provide('mashupIDE.core.Component');
-goog.provide('mashupIDE.core.Component.Events');
-goog.require('mashupIDE.PubSub');
-goog.require('mashupIDE.OperationHistory');
-goog.require('mashupIDE.ui.ConfigurationDialog');
+goog.provide('mide.core.Component');
+goog.provide('mide.core.Component.Events');
+goog.require('mide.PubSub');
+goog.require('mide.OperationHistory');
+goog.require('mide.ui.ConfigurationDialog');
 
 goog.require('goog.ui.Component');
 goog.require('goog.dom');
@@ -12,7 +12,7 @@ goog.require('goog.string');
 goog.require('goog.ui.IdGenerator');
 
 
-mashupIDE.core.Component = function(componentDescriptor, opt_id, opt_config, opt_domHelper) {
+mide.core.Component = function(componentDescriptor, opt_id, opt_config, opt_domHelper) {
 	goog.ui.Component.call(this, opt_domHelper);
 	
 	this.id = opt_id || goog.ui.IdGenerator.getInstance().getNextUniqueId();
@@ -27,13 +27,13 @@ mashupIDE.core.Component = function(componentDescriptor, opt_id, opt_config, opt
 	this.finishedOperations = {};
 	this.connectionStatus = {};
 	
-	this.history = new mashupIDE.OperationHistory(this);
+	this.history = new mide.OperationHistory(this);
 
 	
-	this.configuration_dialog = new mashupIDE.ui.ConfigurationDialog(componentDescriptor.getParameters());
+	this.configuration_dialog = new mide.ui.ConfigurationDialog(componentDescriptor.getParameters());
 	
 	goog.events.listen(this.configuration_dialog, 'change', function() {
-		this.dispatchEvent({type: mashupIDE.core.Component.Events.CONFIG_CHANGED});
+		this.dispatchEvent({type: mide.core.Component.Events.CONFIG_CHANGED});
 	}, false, this);
 	
 	if(opt_config) {
@@ -41,33 +41,33 @@ mashupIDE.core.Component = function(componentDescriptor, opt_id, opt_config, opt
 	}
 };
 
-goog.inherits(mashupIDE.core.Component, goog.ui.Component);
+goog.inherits(mide.core.Component, goog.ui.Component);
 
 
 /**
  * @type {Object}
  * @public
  */
-mashupIDE.core.Component.prototype.id = null;
+mide.core.Component.prototype.id = null;
 
 
 /**
- * @type {mashupIDE.ui.ConfigurationDialog}
+ * @type {mide.ui.ConfigurationDialog}
  * @private
  */
-mashupIDE.core.Component.prototype.configurationDialog = '';
+mide.core.Component.prototype.configurationDialog = '';
 
 /**
  * @type {Object.<string, {finished: boolean, requiredInputs: Array.<string>, depends: Array.<string>}>}
  * @private
  */
-mashupIDE.core.Component.prototype.operations = null;
+mide.core.Component.prototype.operations = null;
 
 /**
  * @type {Object.<string, {depends: Array.<string>}>}
  * @private
  */
-mashupIDE.core.Component.prototype.events = null;
+mide.core.Component.prototype.events = null;
 
 
 /**
@@ -76,7 +76,7 @@ mashupIDE.core.Component.prototype.events = null;
  * @type {Object.<string, Object>}
  * @private
  */
-mashupIDE.core.Component.prototype.outputBuffer = null;
+mide.core.Component.prototype.outputBuffer = null;
 
 /**
  * Input buffer
@@ -84,7 +84,7 @@ mashupIDE.core.Component.prototype.outputBuffer = null;
  * @type {Object.<string, Object>}
  * @private
  */
-mashupIDE.core.Component.prototype.inputBuffer = null;
+mide.core.Component.prototype.inputBuffer = null;
 
 /**
  * Data converters
@@ -92,7 +92,7 @@ mashupIDE.core.Component.prototype.inputBuffer = null;
  * @type {Object.<string, Object>}
  * @private
  */
-mashupIDE.core.Component.prototype.dataProcessors = null;
+mide.core.Component.prototype.dataProcessors = null;
 
 /**
  * Stores connection status of operations and events
@@ -100,7 +100,7 @@ mashupIDE.core.Component.prototype.dataProcessors = null;
  * @type {Object.<string, boolean>}
  * @private
  */
-mashupIDE.core.Component.prototype.connectionStatus = null;
+mide.core.Component.prototype.connectionStatus = null;
 
 
 /**
@@ -109,46 +109,46 @@ mashupIDE.core.Component.prototype.connectionStatus = null;
  * @type {Object.<string, boolean>}
  * @private
  */
-mashupIDE.core.Component.prototype.finishedOperations = null;
+mide.core.Component.prototype.finishedOperations = null;
 
 
 /**
  * Keeps track of the executed operations.
  * 
- * @type {mashupIDE.OperationHistory}
+ * @type {mide.OperationHistory}
  * @private
  */
-mashupIDE.core.Component.prototype.history = null;
+mide.core.Component.prototype.history = null;
 
 
 
 
 
-mashupIDE.core.Component.prototype.setId = function(id) {
+mide.core.Component.prototype.setId = function(id) {
 	if(id) {
 		this.id = id;	
 	}
 };
 
-mashupIDE.core.Component.prototype.getId = function() {
+mide.core.Component.prototype.getId = function() {
 	return this.id;
 };
 
 
 /**
  * 
- * @returns {mashupIDE.ui.ConfigurationDialog}
+ * @returns {mide.ui.ConfigurationDialog}
  */
-mashupIDE.core.Component.prototype.getConfigurationDialog = function() {
+mide.core.Component.prototype.getConfigurationDialog = function() {
 	return this.configurationDialog;
 };
 
 
 /**
  * 
- * @returns {mashupIDE.core.ComponentDescriptor}
+ * @returns {mide.core.ComponentDescriptor}
  */
-mashupIDE.core.Component.prototype.getDescriptor = function() {
+mide.core.Component.prototype.getDescriptor = function() {
 	return this.descriptor;
 };
 
@@ -161,7 +161,7 @@ mashupIDE.core.Component.prototype.getDescriptor = function() {
  * 
  * @return {boolean}
  */
-mashupIDE.core.Component.prototype.isRunnable = function() {
+mide.core.Component.prototype.isRunnable = function() {
 	return this.descriptor.autorun || this.history.getSize() > 0;
 };
 
@@ -171,7 +171,7 @@ mashupIDE.core.Component.prototype.isRunnable = function() {
  * autorun method or 
  * 
  */
-mashupIDE.core.Component.prototype.run = function() {
+mide.core.Component.prototype.run = function() {
 	return this.descriptor.autorun || this.history.getSize() > 0;
 };
 
@@ -184,7 +184,7 @@ mashupIDE.core.Component.prototype.run = function() {
  * @param {Object} params
  * @protected
  */
-mashupIDE.core.Component.prototype.triggerEvent = function(event, params) {
+mide.core.Component.prototype.triggerEvent = function(event, params) {
 	var self = this;
 	if(this.id) {
 		if(event in this.operations) {
@@ -218,9 +218,9 @@ mashupIDE.core.Component.prototype.triggerEvent = function(event, params) {
  * @param {Object} params
  * @private
  */
-mashupIDE.core.Component.prototype.triggerEventInternal = function(event, params) {
+mide.core.Component.prototype.triggerEventInternal = function(event, params) {
 	this.outputBuffer[event] = params;
-	mashupIDE.PubSub.triggerEvent(this, event, params);
+	mide.PubSub.triggerEvent(this, event, params);
 };
 
 
@@ -229,7 +229,7 @@ mashupIDE.core.Component.prototype.triggerEventInternal = function(event, params
  * 
  * @return {Object.<string, {value: string, display: string}} the configuration 
  */
-mashupIDE.core.Component.prototype.getConfiguration = function() {
+mide.core.Component.prototype.getConfiguration = function() {
 	return this.configuration_dialog.getConfiguration();
 };
 
@@ -239,7 +239,7 @@ mashupIDE.core.Component.prototype.getConfiguration = function() {
  * 
  * @param {Object.<string, {value: string, display: string}} config
  */
-mashupIDE.core.Component.prototype.setConfiguration = function(config) {
+mide.core.Component.prototype.setConfiguration = function(config) {
 	return this.configuration_dialog.setConfiguration(config);
 };
 
@@ -255,7 +255,7 @@ mashupIDE.core.Component.prototype.setConfiguration = function(config) {
  * @param {Object.<string, ?>} params parameters
  * @public
  */
-mashupIDE.core.Component.prototype.perform = function(operation, params) {
+mide.core.Component.prototype.perform = function(operation, params) {
 	var op = this.operations[operation],
 		self = this;
 	if(op) {
@@ -299,7 +299,7 @@ mashupIDE.core.Component.prototype.perform = function(operation, params) {
  * @param {Object.<string, ?>} params parameters
  * @private
  */
-mashupIDE.core.Component.prototype.performInternal = function(operation, params) {
+mide.core.Component.prototype.performInternal = function(operation, params) {
 	var op = this.operations[operation],
 		func;
 	
@@ -333,7 +333,7 @@ mashupIDE.core.Component.prototype.performInternal = function(operation, params)
  * @param {Object.<string, ?>} params parameters
  * @private
  */
-mashupIDE.core.Component.prototype.validateInput = function(operation, params) {
+mide.core.Component.prototype.validateInput = function(operation, params) {
 	var op = this.operations[operation],
 		i;
 	if(op) {
@@ -368,7 +368,7 @@ mashupIDE.core.Component.prototype.validateInput = function(operation, params) {
  * @private
  */
 
-mashupIDE.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb) {
+mide.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb) {
 	this.start(name);
 	var self = this;
 	
@@ -386,7 +386,7 @@ mashupIDE.core.Component.prototype.makeRequest = function(name, url, getData, po
 			convertersRequest.shift().makeRequest(name, url, getData, postData, next);
 		}
 		else {
-			mashupIDE.net.makeRequest(url, getData, postData, function(response) {
+			mide.net.makeRequest(url, getData, postData, function(response) {
 				while(convertersResponse[0]) {
 					response = convertersResponse.shift().makeResponse(name, response);
 				}
@@ -404,8 +404,8 @@ mashupIDE.core.Component.prototype.makeRequest = function(name, url, getData, po
  * 
  * @private
  */
-mashupIDE.core.Component.prototype.start = function(operation) {
-    this.dispatchEvent({type: mashupIDE.core.Component.Events.OPSTART, operation: operation});
+mide.core.Component.prototype.start = function(operation) {
+    this.dispatchEvent({type: mide.core.Component.Events.OPSTART, operation: operation});
     goog.dom.classes.add(this.element_, 'active');
 };
 
@@ -416,8 +416,8 @@ mashupIDE.core.Component.prototype.start = function(operation) {
  * 
  * @private
  */
-mashupIDE.core.Component.prototype.end = function(operation) {
-	this.dispatchEvent({type: mashupIDE.core.Component.Events.OPEND, operation: operation});
+mide.core.Component.prototype.end = function(operation) {
+	this.dispatchEvent({type: mide.core.Component.Events.OPEND, operation: operation});
 	goog.dom.classes.remove(this.element_, 'active');
 	goog.dom.classes.add(this.element_, 'done');
 };
@@ -429,7 +429,7 @@ mashupIDE.core.Component.prototype.end = function(operation) {
  * @param {string} operation the name of the operation
  * @private
  */
-mashupIDE.core.Component.prototype.hasUnfulfilledDependencies = function(operation) {
+mide.core.Component.prototype.hasUnfulfilledDependencies = function(operation) {
 	var deps = this.operations[operation].depends,
 		l = deps.length;
 	if(l === 0) {
@@ -452,7 +452,7 @@ mashupIDE.core.Component.prototype.hasUnfulfilledDependencies = function(operati
  * @param {string} operation the name of the operation
  * @private
  */
-mashupIDE.core.Component.prototype.markOperationAsFinished = function(operation) {
+mide.core.Component.prototype.markOperationAsFinished = function(operation) {
 	this.finishedOperations[operation] = true;
 	this.end(operation);
 	
@@ -471,15 +471,15 @@ mashupIDE.core.Component.prototype.markOperationAsFinished = function(operation)
  * be invoked when {@code event} is raised.
  * 
  * @param {string} event
- * @param {mashupIDE.core.Component} target
+ * @param {mide.core.Component} target
  * @param {string} operation
  */
-mashupIDE.core.Component.prototype.connect = function(src, event, target, operation) {
+mide.core.Component.prototype.connect = function(src, event, target, operation) {
 	if(src === this) {
 		this.connectionStatus[event] = true;
-		mashupIDE.PubSub.connect(this, event, target, operation);
+		mide.PubSub.connect(this, event, target, operation);
 		if(this.outputBuffer[event]) {
-			mashupIDE.PubSub.triggerEvent(this, event, this.outputBuffer[event]);
+			mide.PubSub.triggerEvent(this, event, this.outputBuffer[event]);
 		}
 	}
 	else {
@@ -491,13 +491,13 @@ mashupIDE.core.Component.prototype.connect = function(src, event, target, operat
  * Disconnects two components.
  * 
  * @param {string} event
- * @param {mashupIDE.core.Component} target
+ * @param {mide.core.Component} target
  * @param {string} operation
  */
-mashupIDE.core.Component.prototype.disconnect = function(src, event, target, operation) {
+mide.core.Component.prototype.disconnect = function(src, event, target, operation) {
 	if(src === this) {
 		this.connectionStatus[event] = false;
-		mashupIDE.PubSub.disconnect(this, event, target, operation);
+		mide.PubSub.disconnect(this, event, target, operation);
 	}
 	else {
 		this.connectionStatus[operation] = false;
@@ -516,7 +516,7 @@ mashupIDE.core.Component.prototype.disconnect = function(src, event, target, ope
  * 
  * @private
  */
-mashupIDE.core.Component.prototype.getContentNode = function() {
+mide.core.Component.prototype.getContentNode = function() {
 	var div = this.dom_.createElement('div'),
 		content = this.getContentNodeInternal();
 	if(content) {
@@ -539,12 +539,12 @@ mashupIDE.core.Component.prototype.getContentNode = function() {
  * 
  * @protected
  */
-mashupIDE.core.Component.prototype.getContentNodeInternal = function() {
+mide.core.Component.prototype.getContentNodeInternal = function() {
 	
 };
 
 
-mashupIDE.core.Component.prototype.addDataProcessor = function(converter) {
+mide.core.Component.prototype.addDataProcessor = function(converter) {
 	converter.setComponentInstance(this);
 	this.dataProcessors.push(converter);
 };
@@ -553,7 +553,7 @@ mashupIDE.core.Component.prototype.addDataProcessor = function(converter) {
 /**
  * @override
  */
-mashupIDE.core.Component.prototype.createDom = function() {
+mide.core.Component.prototype.createDom = function() {
 	this.element_ =  this.dom_.createDom('div', {'class': 'mashup-component'});
 	this.content_ = content = this.dom_.createDom('div', {'class': 'mashup-component-content'});
 
@@ -563,7 +563,7 @@ mashupIDE.core.Component.prototype.createDom = function() {
 /**
  * @override
  */
-mashupIDE.core.Component.prototype.decorateInternal = function(element) {
+mide.core.Component.prototype.decorateInternal = function(element) {
 	if(!this.element_) {
 		this.createDom();		
 	}
@@ -577,7 +577,7 @@ mashupIDE.core.Component.prototype.decorateInternal = function(element) {
  * 
  * @type {Object}
  */
-mashupIDE.core.Component.Events = {
+mide.core.Component.Events = {
 		OPSTART: 'opstart',
 		OPEND: 'opend',
 		CONFIG_CHANGED: 'config_changed'

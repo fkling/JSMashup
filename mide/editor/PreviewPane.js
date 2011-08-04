@@ -1,19 +1,19 @@
-goog.provide('mashupIDE.editor.PreviewPane');
-goog.require('mashupIDE.editor.AbstractView');
+goog.provide('mide.editor.PreviewPane');
+goog.require('mide.editor.AbstractView');
 
 goog.require('goog.dom');
 goog.require('goog.events');
 goog.require('goog.ui.TabPane');
 
-mashupIDE.editor.PreviewPane = function(editor) {
+mide.editor.PreviewPane = function(editor) {
 	var elem = goog.dom.createDom('div', {id: 'preview'});
 	
 	
-	goog.events.listen(editor, mashupIDE.Editor.Events.COMPONENT_LOADED, function(e) {
+	goog.events.listen(editor, mide.Editor.Events.COMPONENT_LOADED, function(e) {
 		console.log(e);
 	}, null);
 	
-	goog.events.listen(editor, mashupIDE.Editor.Events.COMPONENT_NEW, function(e) {
+	goog.events.listen(editor, mide.Editor.Events.COMPONENT_NEW, function(e) {
 		console.log(e);
 	}, null);
 	
@@ -22,7 +22,7 @@ mashupIDE.editor.PreviewPane = function(editor) {
 		console.log(e);
 	});
 	
-	mashupIDE.editor.AbstractView.call(this, elem, 'Preview');
+	mide.editor.AbstractView.call(this, elem, 'Preview');
 };
 
-goog.inherits(mashupIDE.editor.PreviewPane, mashupIDE.editor.AbstractView);
+goog.inherits(mide.editor.PreviewPane, mide.editor.AbstractView);

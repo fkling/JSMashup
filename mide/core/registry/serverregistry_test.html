@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>Closure Unit Tests - mashupIDE.core.registry.ServerRegistry</title>
+<title>Closure Unit Tests - mide.core.registry.ServerRegistry</title>
 <script src="../../../google_closure/closure/goog/base.js"></script>
 <script src="../../deps.js"></script>
 <script>
@@ -12,8 +12,8 @@
   goog.require('goog.testing.jsunit');
   goog.require('goog.testing.net.XhrIo');
   goog.require('goog.testing.net.XhrIoPool');
-  goog.require('mashupIDE.core.net');
-  goog.require('mashupIDE.core.registry.ServerRegistry');
+  goog.require('mide.core.net');
+  goog.require('mide.core.registry.ServerRegistry');
 </script>
 </head>
 <body>
@@ -41,7 +41,7 @@
   function setUp() {
 	clock = new goog.testing.MockClock(true);
 	xhr = new goog.testing.net.XhrIo();
-	mashupIDE.core.net.pool = new goog.testing.net.XhrIoPool(xhr);
+	mide.core.net.pool = new goog.testing.net.XhrIoPool(xhr);
     mockControl = new goog.testing.MockControl();
     mockSuccessHandler = mockControl.createFunctionMock('success'),
     mockErrorHandler = mockControl.createFunctionMock('error');
@@ -53,12 +53,12 @@
   }
 
   function testConstructor_call() {
-    var registry = new mashupIDE.core.registry.ServerRegistry(options);
+    var registry = new mide.core.registry.ServerRegistry(options);
     assert('Registry available', !!registry);
   }
   
   function testLoad_callSuccess() {	  
-	  var registry = new mashupIDE.core.registry.ServerRegistry(options);
+	  var registry = new mide.core.registry.ServerRegistry(options);
 	  mockSuccessHandler(registry);
 	  mockControl.$replayAll();
 	  
@@ -69,7 +69,7 @@
    }
   
   function testLoad_callError() {
-	  var registry = new mashupIDE.core.registry.ServerRegistry(options);
+	  var registry = new mide.core.registry.ServerRegistry(options);
 	  mockErrorHandler("Registry could not load successfully: [404]");
 	  mockControl.$replayAll();
       
@@ -80,7 +80,7 @@
    }
   
   function testGetComponents_callSuccess() {
-	  var registry = new mashupIDE.core.registry.ServerRegistry(options);
+	  var registry = new mide.core.registry.ServerRegistry(options);
       mockSuccessHandler(allComponentsJson);
       mockControl.$replayAll();
 	  
@@ -93,7 +93,7 @@
   }
   
   function testGetComponents_callError() {
-      var registry = new mashupIDE.core.registry.ServerRegistry(options);
+      var registry = new mide.core.registry.ServerRegistry(options);
       mockErrorHandler("Components couldn't be loaded.");
       mockControl.$replayAll();
       
@@ -106,7 +106,7 @@
   }
   
   function testGetComponents_noErrorHandlerSilentFail() {
-      var registry = new mashupIDE.core.registry.ServerRegistry(options);
+      var registry = new mide.core.registry.ServerRegistry(options);
       mockControl.$replayAll();
       
       assertNotThrows(function() {
@@ -120,7 +120,7 @@
   }
   
   function testGetUserComponents_callSuccess() {
-	  var registry = new mashupIDE.core.registry.ServerRegistry(options);
+	  var registry = new mide.core.registry.ServerRegistry(options);
       mockSuccessHandler(userComponentsJson);
       mockControl.$replayAll();
       
@@ -134,7 +134,7 @@
 	}
   
   function testGetUserComponents_callError() {
-      var registry = new mashupIDE.core.registry.ServerRegistry(options);
+      var registry = new mide.core.registry.ServerRegistry(options);
       mockErrorHandler("User components couldn't be loaded.");
       mockControl.$replayAll();
       
@@ -147,7 +147,7 @@
   }
   
   function testGetUserComponents_noErrorHandlerSilentFail() {
-      var registry = new mashupIDE.core.registry.ServerRegistry(options);
+      var registry = new mide.core.registry.ServerRegistry(options);
       mockControl.$replayAll();
       
       assertNotThrows(function() {
@@ -161,7 +161,7 @@
   }
 
 	function testGetUserComponents_throwsIfNoUser() {
-		var registry = new mashupIDE.core.registry.ServerRegistry(options);
+		var registry = new mide.core.registry.ServerRegistry(options);
 		mockControl.$replayAll();
 		
 		var e = assertThrows(function() {
@@ -170,7 +170,7 @@
 	          });
         });
 		
-		assertEquals('[mashupIDE.core.registry.ServerRegistry] No user id was set',e.message);
+		assertEquals('[mide.core.registry.ServerRegistry] No user id was set',e.message);
 		mockControl.$verifyAll();
 	}
 	

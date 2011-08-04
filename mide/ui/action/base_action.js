@@ -1,11 +1,11 @@
-goog.provide('mashupIDE.ui.action.BaseAction');
+goog.provide('mide.ui.action.BaseAction');
 
 
 /**
- * @param {mashupIDE.OptionMap} options
+ * @param {mide.OptionMap} options
  * @constructor
  */
-mashupIDE.ui.action.BaseAction = function(options) {
+mide.ui.action.BaseAction = function(options) {
 	this.options_ = options;
 };
 
@@ -14,13 +14,13 @@ mashupIDE.ui.action.BaseAction = function(options) {
  * 
  * @protected
  */
-mashupIDE.ui.action.BaseAction.prototype.perform = function() {};
+mide.ui.action.BaseAction.prototype.perform = function() {};
 
 /**
  * @param {Comonent} component
  * 
  * @public
  */
-mashupIDE.ui.action.BaseAction.prototype.setConfigurationDialog = function(configDialog) {
+mide.ui.action.BaseAction.prototype.setConfigurationDialog = function(configDialog) {
 	this.configDialog_ = configDialog;
 };
