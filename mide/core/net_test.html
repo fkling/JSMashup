@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Closure Unit Tests - mashupIDE.core.net</title>
+<script src="../../google_closure/closure/goog/base.js"></script>
+<script src="../deps.js"></script>
+<script>
+  goog.require('goog.testing.MockClock');
+  goog.require('goog.testing.MockControl');
+  goog.require('goog.testing.jsunit');
+  goog.require('goog.testing.net.XhrIoPool');
+  goog.require('goog.uri.utils');
+  goog.require('mashupIDE.core.net');
+</script>
+</head>
+<body>
+<script>
+  var url = "http://www.google.com";
+  var clock, mockControl, mockCompleteHandler, mockSuccessHandler, mockErrorHandler, xhr, options;
+
+
+  function setUp() {
+	  xhr = new goog.testing.net.XhrIo();
+	  mashupIDE.core.net.pool = new goog.testing.net.XhrIoPool(xhr);
+	  mockControl = new goog.testing.MockControl();
+	  clock = new goog.testing.MockClock(true);
+	  var verifier = function(e, g){
+          return !!g[0] && g[0].target === xhr;
+      };
+	  mockCompleteHandler = mockControl.createFunctionMock('complete');
+	  mockCompleteHandler.$registerArgumentListVerifier('complete', verifier);
+	  mockCompleteHandler();
+	  
+	  mockSuccessHandler = mockControl.createFunctionMock('success');
+      mockSuccessHandler.$registerArgumentListVerifier('success', verifier);
+      mockSuccessHandler();
+      
+      mockErrorHandler = mockControl.createFunctionMock('error');
+      mockErrorHandler.$registerArgumentListVerifier('error', verifier);
+      mockErrorHandler();
+      
+      options = {
+              url: url,
+              parameters: {foo: 'bar'},
+              complete: mockCompleteHandler,
+              error: mockErrorHandler,
+              success: mockSuccessHandler
+      };
+  }
+  
+  function tearDown() {
+	  clock.dispose();
+	}
+  
+  function testMakeRequest_callComplete() {
+	   mockCompleteHandler.$times(1);
+	   mockSuccessHandler.$times(1);
+	   mockErrorHandler.$times(0);  
+	   mockControl.$replayAll();
+	  
+	    mashupIDE.core.net.makeRequest(options);
+	    
+	    xhr.simulateResponse(200);
+	    mockControl.$verifyAll();
+	    mockControl.$resetAll();
+  }
+  
+  function testMakeRequest_callSuccess() {   
+	  mockCompleteHandler.$times(1);
+	  mockSuccessHandler.$times(1);
+      mockErrorHandler.$times(0);
+      mockControl.$replayAll();
+        
+      mashupIDE.core.net.makeRequest(options);
+      
+      xhr.simulateResponse(200);
+      mockControl.$verifyAll();
+      mockControl.$resetAll();
+   }
+  
+  function testMakeRequest_callMultipleSim() { 
+	  mockCompleteHandler.$times(3);
+	  mockSuccessHandler.$times(2);
+      mockErrorHandler.$times(1);
+      mockControl.$replayAll();
+        
+      mashupIDE.core.net.makeRequest(options);
+      mashupIDE.core.net.makeRequest(options);
+      mashupIDE.core.net.makeRequest(options);
+      xhr.simulateResponse(200);
+      xhr.simulateResponse(200);
+      xhr.simulateResponse(404);
+
+
+      
+      mockControl.$verifyAll();
+      mockControl.$resetAll();
+   }
+  
+  function testMakeRequest_callError404() { 
+	  mockCompleteHandler.$times(1);
+	  mockSuccessHandler.$times(0);
+      mockErrorHandler.$times(1);
+      mockControl.$replayAll();
+        
+      mashupIDE.core.net.makeRequest(options);
+      
+      xhr.simulateResponse(404);
+      mockControl.$verifyAll();
+      mockControl.$resetAll();
+   }
+  
+  function testMakeRequest_appendGetParameters() {
+	  var count = 0;
+	  var expected_uri = goog.uri.utils.appendParamsFromMap(options.url, options.data);
+	  
+      mashupIDE.core.net.makeRequest({
+          url: options.url,
+          parameters: options.data,
+          complete: function(event) {
+              assertEquals('GET parameters are appended', event.target.getLastUri(), expected_uri);
+              count++;
+          }
+      });
+      
+      xhr.simulateResponse(200);
+      clock.tick(1);
+      
+      assertEquals('Complete function called once', count, 1);
+  }
+</script>
+</body>
+</html>
