@@ -185,6 +185,8 @@ mide.util.OptionMap.prototype.has = function(name) {
  * 					 <code>index</code>, the index of the option.
  * @param {Object} opt_context The object, <code>this</code> should refer to in the callback.
  * 
+ * @this {window|opt_context}
+ * 
  * @public
  */
 mide.util.OptionMap.prototype.each = function(callback, opt_context) {

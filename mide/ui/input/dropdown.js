@@ -1,6 +1,5 @@
 goog.provide('mide.ui.input.Dropdown');
 goog.require('mide.ui.input.BaseInput');
-goog.require('mide.ui.input.InputFactory');
 
 goog.require('goog.dom');
 
@@ -74,7 +73,3 @@ mide.ui.input.Dropdown.prototype.setValue = function(value) {
 	      type: 'change'
 	});
 };
-
-
-
-mide.ui.input.InputFactory.registerInput('dropdown', mide.ui.input.Dropdown);

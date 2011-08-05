@@ -1,5 +1,4 @@
 goog.provide('mide.ui.input.Autocomplete');
-goog.require('mide.ui.input.InputFactory');
 goog.require('mide.ui.input.BaseInput');
 goog.require('mide.ui.input.autocomplete.Matcher');
 
@@ -76,6 +75,3 @@ mide.ui.input.Autocomplete.prototype.setValue = function(value) {
 	      type: 'change'
 	});
 };
-
-mide.ui.input.InputFactory.registerInput('autocomplete',
-		mide.ui.input.Autocomplete);

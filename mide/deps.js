@@ -23,11 +23,12 @@ goog.addDependency('../../../mide/parser.js', ['mide.parser'], ['goog.dom.xml'])
 goog.addDependency('../../../mide/ui/action/action_factory.js', ['mide.ui.action.ActionFactory'], []);
 goog.addDependency('../../../mide/ui/action/base_action.js', ['mide.ui.action.BaseAction'], []);
 goog.addDependency('../../../mide/ui/action/update.js', ['mide.ui.action.Update'], ['mide.ui.action.ActionFactory', 'mide.ui.action.BaseAction']);
-goog.addDependency('../../../mide/ui/configuration_dialog.js', ['mide.ui.ConfigurationDialog'], ['goog.events', 'goog.object', 'goog.ui.Component', 'mide.ui.action.ActionFactory', 'mide.ui.action.Update', 'mide.ui.input.Autocomplete', 'mide.ui.input.Dropdown', 'mide.ui.input.InputFactory', 'mide.ui.input.Text', 'mide.util.OptionMap']);
+goog.addDependency('../../../mide/ui/configuration_dialog.js', ['mide.ui.ConfigurationDialog'], ['goog.events', 'goog.object', 'goog.ui.Component', 'mide.ui.action.ActionFactory', 'mide.ui.action.Update', 'mide.ui.input.Autocomplete', 'mide.ui.input.Dropdown', 'mide.ui.input.InputFactory', 'mide.ui.input.TextInput', 'mide.util.OptionMap']);
 goog.addDependency('../../../mide/ui/input/autocomplete.js', ['mide.ui.input.Autocomplete'], ['goog.array', 'goog.dom', 'goog.ui.AutoComplete', 'goog.ui.AutoComplete.InputHandler', 'goog.ui.AutoComplete.Renderer', 'mide.ui.input.BaseInput', 'mide.ui.input.InputFactory', 'mide.ui.input.autocomplete.Matcher']);
 goog.addDependency('../../../mide/ui/input/autocomplete/matcher.js', ['mide.ui.input.autocomplete.Matcher'], ['goog.ui.AutoComplete.RemoteArrayMatcher', 'goog.uri.utils', 'mide.core.net']);
 goog.addDependency('../../../mide/ui/input/base_input.js', ['mide.ui.input.BaseInput'], ['goog.ui.Component']);
 goog.addDependency('../../../mide/ui/input/dropdown.js', ['mide.ui.input.Dropdown'], ['goog.dom', 'mide.ui.input.BaseInput', 'mide.ui.input.InputFactory']);
-goog.addDependency('../../../mide/ui/input/input_factory.js', ['mide.ui.input.InputFactory'], []);
-goog.addDependency('../../../mide/ui/input/text.js', ['mide.ui.input.Text'], ['goog.dom', 'mide.ui.input.BaseInput', 'mide.ui.input.InputFactory']);
+goog.addDependency('../../../mide/ui/input/inputfactory.js', ['mide.ui.input.InputFactory'], ['mide.ui.input.ProxyInput']);
+goog.addDependency('../../../mide/ui/input/inputproxy.js', ['mide.ui.input.ProxyInput'], ['mide.ui.input.TextInput']);
+goog.addDependency('../../../mide/ui/input/textinput.js', ['mide.ui.input.TextInput'], ['goog.dom', 'mide.ui.input.BaseInput', 'mide.ui.input.InputFactory']);
 goog.addDependency('../../../mide/util/optionmap.js', ['mide.util.OptionMap'], []);

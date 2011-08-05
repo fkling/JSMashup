@@ -2,7 +2,7 @@ goog.provide('mide.ui.ConfigurationDialog');
 goog.require('mide.ui.input.InputFactory');
 goog.require('mide.ui.input.Dropdown');
 goog.require('mide.ui.input.Autocomplete');
-goog.require('mide.ui.input.Text');
+goog.require('mide.ui.input.TextInput');
 goog.require('mide.ui.action.Update');
 goog.require('mide.ui.action.ActionFactory');
 goog.require('mide.util.OptionMap');

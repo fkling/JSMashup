@@ -123,5 +123,5 @@ mide.ui.input.BaseInput.prototype.getValue = function() {
  * 
  * @protected
  */
-mide.ui.input.BaseInput.prototype.etValue = function() {
+mide.ui.input.BaseInput.prototype.setValue = function() {
 };
