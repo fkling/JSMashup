@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>JSMashupIDE Unit Tests - mide.module.ModuleManager</title>
+<script src="../../google_closure/closure/goog/base.js"></script>
+<script src="../deps.js"></script>
+<script>
+  goog.require('goog.testing.MockClock');
+  goog.require('goog.testing.MockControl');
+  goog.require('goog.testing.jsunit');
+  goog.require('goog.testing.AsyncTestCase');
+  goog.require('mide.module.ModuleManager');
+</script>
+</head>
+<body>
+<script>
+  var moduleManager;
+
+  var testCase = goog.testing.AsyncTestCase.createAndInstall(document.title);
+  testCase.stepTimeout = 5 * 1000; // 5 seconds
+
+  testCase.setUp = function() {
+    moduleManager = mide.module.ModuleManager.getInstance();
+
+  };
+
+  function testLoadModuleA() {
+      testCase.waitForAsync('wait for module A load');
+      moduleManager.load('modA', 'testdata/modA.js', function() {
+    	  testCase.continueTesting();
+    	  assertTrue(moduleManager.getModuleInfo('modA').isLoaded());
+    	  asserTrue(window.modA);
+      });
+  }
+  
+  function testLoadModuleA_twice() {
+      testCase.waitForAsync('wait for module A load');
+      moduleManager.load('modA', 'testdata/modA.js', function() {
+    	  moduleManager.load('modA', 'testdata/modA.js', function() {
+    		  testCase.continueTesting();
+              assertTrue(moduleManager.getModuleInfo('modA').isLoaded());
+              asserTrue(window.modA);
+    	  });
+      });
+  };
+</script>
+</body>
+</html>

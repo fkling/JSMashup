@@ -20,5 +20,5 @@ goog.require('mide.ui.input.TextInput');
  * @constructor
  */
 mide.ui.input.ProxyInput = function(name, opt_options, opt_ref) {
-	
+	 mide.ui.input.TextInput.call(this, opt_options);
 }

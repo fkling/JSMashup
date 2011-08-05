@@ -1,0 +1,5 @@
+/**
+ * Testmodule
+ */
+
+window.modA = true;
