@@ -51,9 +51,9 @@
       var factory = mide.ui.input.InputFactory.getInstance();
       mide.ui.input.ProxyInput = mockControl.createFunctionMock();
       var options = {foo: 'bar'},
-          ret = {options: options},
+          ret = {setManager: function(){}},
           url = 'foo';
-      mide.ui.input.ProxyInput('foo.bar.Input', options, url).$does(function(name, options, url){ return ret});
+      mide.ui.input.ProxyInput('foo.bar.Input', url, options).$does(function(name, url, options){ return ret});
       mockControl.$replayAll();
       
       var f = factory.get('foo.bar.Input', options, url);

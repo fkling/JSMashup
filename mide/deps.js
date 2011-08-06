@@ -28,9 +28,9 @@ goog.addDependency('../../../mide/ui/action/update.js', ['mide.ui.action.Update'
 goog.addDependency('../../../mide/ui/configuration_dialog.js', ['mide.ui.ConfigurationDialog'], ['goog.events', 'goog.object', 'goog.ui.Component', 'mide.ui.action.ActionFactory', 'mide.ui.action.Update', 'mide.ui.input.Autocomplete', 'mide.ui.input.Dropdown', 'mide.ui.input.InputFactory', 'mide.ui.input.TextInput', 'mide.util.OptionMap']);
 goog.addDependency('../../../mide/ui/input/autocomplete.js', ['mide.ui.input.Autocomplete'], ['goog.array', 'goog.dom', 'goog.ui.AutoComplete', 'goog.ui.AutoComplete.InputHandler', 'goog.ui.AutoComplete.Renderer', 'mide.ui.input.BaseInput', 'mide.ui.input.autocomplete.Matcher']);
 goog.addDependency('../../../mide/ui/input/autocomplete/matcher.js', ['mide.ui.input.autocomplete.Matcher'], ['goog.ui.AutoComplete.RemoteArrayMatcher', 'goog.uri.utils', 'mide.core.net']);
-goog.addDependency('../../../mide/ui/input/base_input.js', ['mide.ui.input.BaseInput'], ['goog.ui.Component']);
+goog.addDependency('../../../mide/ui/input/base_input.js', ['mide.ui.input.BaseInput'], ['goog.dom', 'goog.events.EventTarget']);
 goog.addDependency('../../../mide/ui/input/dropdown.js', ['mide.ui.input.Dropdown'], ['goog.dom', 'mide.ui.input.BaseInput']);
-goog.addDependency('../../../mide/ui/input/inputfactory.js', ['mide.ui.input.InputFactory'], ['mide.ui.input.ProxyInput']);
-goog.addDependency('../../../mide/ui/input/inputproxy.js', ['mide.ui.input.ProxyInput'], ['mide.ui.input.TextInput']);
+goog.addDependency('../../../mide/ui/input/inputfactory.js', ['mide.ui.input.InputFactory'], ['goog.dom', 'mide.module.ModuleManager', 'mide.ui.input.ProxyInput']);
+goog.addDependency('../../../mide/ui/input/proxyinput.js', ['mide.ui.input.ProxyInput'], ['goog.object', 'mide.ui.input.BaseInput', 'mide.ui.input.TextInput']);
 goog.addDependency('../../../mide/ui/input/textinput.js', ['mide.ui.input.TextInput'], ['goog.dom', 'mide.ui.input.BaseInput']);
 goog.addDependency('../../../mide/util/optionmap.js', ['mide.util.OptionMap'], []);

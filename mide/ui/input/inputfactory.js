@@ -1,6 +1,9 @@
 goog.provide('mide.ui.input.InputFactory');
 
 goog.require('mide.ui.input.ProxyInput');
+goog.require('mide.module.ModuleManager');
+
+goog.require('goog.dom');
 
 /**
  * Input factory to get the get an input element
@@ -29,11 +32,14 @@ mide.ui.input.InputFactory = function(){};
  * @public
  */
 mide.ui.input.InputFactory.prototype.get = function(name, opt_options, opt_ref) {
-    var input = goog.getObjectByName(name);
-    if(input) {
-    	return new input(opt_options);
+    var Input = goog.getObjectByName(name);
+    if(Input) {
+    	return new Input(opt_options);
     }
-    return new mide.ui.input.ProxyInput(name, opt_options, opt_ref);
+    var proxy = new mide.ui.input.ProxyInput(name, opt_ref, opt_options);
+    proxy.setManager(mide.module.ModuleManager.getInstance());
+    
+    return proxy;
 };
 
 goog.addSingletonGetter(mide.ui.input.InputFactory);

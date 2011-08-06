@@ -8,7 +8,14 @@ goog.require('goog.ui.AutoComplete.InputHandler');
 goog.require('goog.dom');
 goog.require('goog.array');
 
-mide.ui.input.Autocomplete = function(options, events, opt_domHelper) {
+
+/**
+ * An autocomplete text field
+ * 
+ * @extends mide.ui.input.BaseInput
+ * @constructor
+ */
+mide.ui.input.Autocomplete = function(name, label, opt_options) {
 	this.lastDisplay_ = '';
 	this.lastValue_ = '';
 	this.data = [];
@@ -16,37 +23,44 @@ mide.ui.input.Autocomplete = function(options, events, opt_domHelper) {
 };
 
 goog.inherits(mide.ui.input.Autocomplete, mide.ui.input.BaseInput);
+mide.ui.input.TextInput.Events = mide.ui.input.BaseInput.Events;
 
-mide.ui.input.Autocomplete.prototype.createInputNode = function() {
-	this.input = this.dom_.createDom('input', {
-		name : this.options.get('name')
-	});
-	var valueMapper = this.options.get('valueMapper'), 
-		self = this;
-
-	var renderer = new goog.ui.AutoComplete.Renderer();
-	var inputhandler = new goog.ui.AutoComplete.InputHandler(null, null, false,
-			300);
-	var matcher = new mide.ui.input.autocomplete.Matcher(this.options.get('search_parameter'), 
-			this.options.get('url'), 
-			function(txt) {
-		self.data = JSON.parse(txt);
-		return goog.array.map(self.data, function(v) {
-			return v[valueMapper];
+/**
+ * @override
+ */
+mide.ui.input.Autocomplete.prototype.renderInternal_ = function() {
+	if(this.inputElement_) {
+		this.inputElement_ = this.dom_.createDom('input', {
+			name : this.options.get('name')
 		});
-	});
-
-	var ac = new goog.ui.AutoComplete(matcher, renderer, inputhandler);
+		var valueMapper = this.options.get('valueMapper'), 
+			self = this;
 	
-	goog.events.listen(ac, goog.ui.AutoComplete.EventType.UPDATE, function(e) {
-		this.lastDisplay_ = e.row;
-		this.dispatchEvent({
-		      type: 'change'
+		var renderer = new goog.ui.AutoComplete.Renderer();
+		var inputhandler = new goog.ui.AutoComplete.InputHandler(null, null, false,
+				300);
+		var matcher = new mide.ui.input.autocomplete.Matcher(this.options.get('search_parameter'), 
+				this.options.get('url'), 
+				function(txt) {
+			self.data = JSON.parse(txt);
+			return goog.array.map(self.data, function(v) {
+				return goog.getObjectByName(valueMapper, v);
+			});
 		});
-	}, false, this);
-
-	inputhandler.attachAutoComplete(ac);
-	inputhandler.attachInputs(this.input);
+	
+		var ac = new goog.ui.AutoComplete(matcher, renderer, inputhandler);
+		
+		goog.events.listen(ac, goog.ui.AutoComplete.EventType.UPDATE, function(e) {
+			this.lastDisplay_ = e.row;
+			this.dispatchEvent({
+			      type: mide.ui.input.BaseInput.Events.CHANGE
+			});
+		}, false, this);
+	
+		inputhandler.attachAutoComplete(ac);
+		inputhandler.attachInputs(this.inputElement_);
+	}
+	return 	this.inputElement_
 };
 
 /**
@@ -54,11 +68,11 @@ mide.ui.input.Autocomplete.prototype.createInputNode = function() {
  */
 mide.ui.input.Autocomplete.prototype.getValue = function() {
 	var valueMapper = this.options.get('valueMapper');
-	var obj = goog.array.find(this.data, function(v) {
-		return this.lastDisplay_ == v[valueMapper];
+	var obj = goog.array.find(this.data, function(value) {
+		return this.lastDisplay_ == goog.getObjectByName(valueMapper, value);
 	}, this);
 	if(obj) {
-		this.lastValue_ = obj[this.options.get('idMapper')];
+		this.lastValue_ = goog.getObjectByName(this.options.get('idMapper'), obj);
 	}
 	return {value: this.lastValue_, display: this.lastDisplay_};
 };
@@ -67,10 +81,10 @@ mide.ui.input.Autocomplete.prototype.getValue = function() {
  * @override
  */
 mide.ui.input.Autocomplete.prototype.setValue = function(value) {
-	if(!this.input) this.createInputNode();
+	if(!this.inputElement_) this.renderInternal_();
 	this.lastDisplay_ = value.display;
 	this.lastValue_ = value.value;
-	this.input.value = this.lastDisplay_;
+	this.inputElement_.value = this.lastDisplay_;
 	this.dispatchEvent({
 	      type: 'change'
 	});

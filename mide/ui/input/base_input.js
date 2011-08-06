@@ -1,111 +1,131 @@
 goog.provide('mide.ui.input.BaseInput');
-goog.require('goog.ui.Component');
+
+goog.require('mide.util.OptionMap');
+
+goog.require('goog.events.EventTarget');
+goog.require('goog.events.EventHandler');
+goog.require('goog.dom');
 
 /**
- * @param {mide.OptionMap}
- *            options
- * @param opt_domHelper
+ * The base implementation for input classes.
+ * 
+ * @param {string} name The name of the input element should correspond to the
+ *     name of the configuration option in the model file.
+ * @param {string} label The visible label used in the UI
+ * @param {mide.util.OptionMap} opt_options
+ * 
+ * @interface
+ * @extends goog.events.EventTarget
  * @constructor
  */
-mide.ui.input.BaseInput = function(options, events, opt_domHelper) {
-	goog.ui.Component.call(this, opt_domHelper);
+mide.ui.input.BaseInput = function(name, label, opt_options) {
+	goog.events.EventTarget.call(this);
 
-	this.options = options;
-	this.events = events;
+	this.name = name || '';
+	this.label = label || '';
+	this.options = opt_options || new mide.util.OptionMap();
 	this.eh = new goog.events.EventHandler(this);
+	this.dom_ = goog.dom;
 };
 
-goog.inherits(mide.ui.input.BaseInput, goog.ui.Component);
+goog.inherits(mide.ui.input.BaseInput, goog.events.EventTarget);
+
 
 /**
- * @type {Element}
- * @protected
+ * The name of the input element should correspond to the
+ * name of the configuration option in the model file.
+ * 
+ * @type {string}
+ * @private
  */
-mide.ui.input.BaseInput.prototype.label = null;
+mide.ui.input.BaseInput.prototype.name = '';
 
 /**
- * @type {Element}
- * @protected
+ * The visible label used in the UI
+ * 
+ * @type {string}
+ * @private
  */
-mide.ui.input.BaseInput.prototype.input = null;
+mide.ui.input.BaseInput.prototype.label = '';
 
 /**
- * @type {Array}
- * @protected
+ * @type {mide.util.OptionMap}
+ * @private
  */
 mide.ui.input.BaseInput.prototype.options = null;
 
+
 /**
- * @type {Array}
+ * @type {Element}
  * @private
  */
-mide.ui.input.BaseInput.prototype.events = null;
+mide.ui.input.BaseInput.prototype.labelElement_ = null;
+
+/**
+ * Input element place holder. Child classes can store the implementation
+ * specific element here.
+ * 
+ * @type {Element}
+ * @private
+ */
+mide.ui.input.BaseInput.prototype.labelElement_ = null;
+
+/**
+ * @type {Element}
+ * @private
+ */
+mide.ui.input.BaseInput.prototype.element_ = null;
+
 
 /**
  * @type {goog.events.EventHandler}
- * @protected
+ * @private
  */
 mide.ui.input.BaseInput.prototype.eh = null;
 
 /**
- * @override
+ * @type {goog.dom}
+ * @private
  */
-mide.ui.input.BaseInput.prototype.createDom = function() {
-	var elem = this.element_ = this.dom_.createElement('div');
-	
-	this.label = this.dom_.createDom('label', 
-			{'for': this.options.get('name')}, 
-			this.dom_.createTextNode(this.options.get('label'))
-	);
-	this.createInputNode();
-	this.dom_.append(elem, this.label, this.input);
-
-};
+mide.ui.input.BaseInput.prototype.dom_ = null;
 
 /**
- * @override
+ * Renders the input element either in provided container or
+ * returns a new element.
+ * 
+ * @param {Element} container
+ * @public
  */
-mide.ui.input.BaseInput.prototype.enterDocument = function() {
-	mide.ui.input.BaseInput.superClass_.enterDocument.call(this);
-	for ( var i = 0, l = this.events.length; i < l; i++) {
-		this.attachEventHandler(this.events[i]);
+mide.ui.input.BaseInput.prototype.render = function(container) {
+	var elem = this.element_ = container || goog.dom.createElement('div');
+	goog.dom.removeChildren(elem);
+	
+	this.labelElement_ = goog.dom.createDom('label', 
+			{'for': this.options.get('name')}, 
+			goog.dom.createTextNode(this.options.get('label'))
+	);
+	var internal = this.renderInternal_();
+	if(internal) {
+		goog.dom.append(elem, this.label, internal);
+	}
+	if(!container) {
+		return elem;
 	}
 };
 
 /**
- * @param {Array} events
+ * @return {Element}
  * @private
  */
-mide.ui.input.BaseInput.prototype.attachEventHandler = function(event) {
-	this.eh.listen(this, goog.events.EventType[event.type], function(event) {
-		var act, action;
-		for (var j = 0, k = event.action.length; j < k; j++) {
-			act = event.action[j];
-			action = mide.ui.action.ActionFactory.get(act.name, new mide.util.OptionMap(act.option));
-			action.setConfigurationDialog(this.getParent());
-			action.perform();
-			this.dispatchEvent({type: event.type});
-		}
-	}, false, this);
-};
-
-
-
-/**
- * Must be implemented by the child class and must assign a DOM
- * element to this.input.
- * 
- * @protected
- */
-mide.ui.input.BaseInput.prototype.createInputNode = function() {
-
+mide.ui.input.BaseInput.prototype.renderInternal_ = function() {
+   // must be implemented by child classes
 };
 
 /**
  * Called when an input element should update its display or values. Does
  * nothing by default.
  * 
- * @protected
+ * @public
  */
 mide.ui.input.BaseInput.prototype.update = function() {
 };
@@ -113,7 +133,10 @@ mide.ui.input.BaseInput.prototype.update = function() {
 /**
  * Called to get the current value of the UI component.
  * 
- * @protected
+ * @return {string|Object} Returns either a string or a
+ *     <code>{value: "...", display: "..."}</code> map.
+ * 
+ * @public
  */
 mide.ui.input.BaseInput.prototype.getValue = function() {
 };
@@ -121,7 +144,30 @@ mide.ui.input.BaseInput.prototype.getValue = function() {
 /**
  * Called to set the current value of the UI component.
  * 
- * @protected
+ * @param {string|Object} value Can either be a string or a
+ *     <code>{value: "...", display: "..."}</code> map.
+ * 
+ * @public
  */
-mide.ui.input.BaseInput.prototype.setValue = function() {
+mide.ui.input.BaseInput.prototype.setValue = function(value) {
 };
+
+/**
+ * @override
+ */
+mide.ui.input.BaseInput.prototype.disposeInternal = function() {
+	goog.base(this, 'disposeInternal');
+	this.element_ = null;
+	this.labelElement_ = null;
+	this.inputElement_ = null;
+};
+
+/**
+ * Events generated by input elements.
+ * 
+ * @type {Object}
+ * @enum
+ */
+mide.ui.input.BaseInput.Events = {
+	CHANGE: 'change'
+}

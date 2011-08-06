@@ -40,7 +40,7 @@
     	  moduleManager.load('modA', 'testdata/modA.js', function() {
     		  testCase.continueTesting();
               assertTrue(moduleManager.getModuleInfo('modA').isLoaded());
-              asserTrue(window.modA);
+              assertTrue(window.modA);
     	  });
       });
   };
