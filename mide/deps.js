@@ -9,7 +9,7 @@ goog.addDependency('../../../mide/WiringEditor.js', ['mide.WiringEditor'], ['mid
 goog.addDependency('../../../mide/core/Component.js', ['mide.core.Component', 'mide.core.Component.Events'], ['goog.array', 'goog.dom', 'goog.dom.classes', 'goog.string', 'goog.ui.Component', 'goog.ui.IdGenerator', 'mide.OperationHistory', 'mide.PubSub', 'mide.ui.ConfigurationDialog']);
 goog.addDependency('../../../mide/core/ComponentDescriptor.js', ['mide.core.ComponentDescriptor'], ['goog.array', 'goog.string', 'mide.core.Component', 'mide.parser']);
 goog.addDependency('../../../mide/core/Session.js', ['mide.config.session', 'mide.core.Session'], ['goog.object', 'goog.ui.IdGenerator', 'mide.Canvas', 'mide.ServiceCallConverter']);
-goog.addDependency('../../../mide/core/net.js', ['mide.config.net', 'mide.core.net'], ['goog.events', 'goog.net.XhrIo', 'goog.net.XhrIoPool', 'goog.object', 'goog.uri.utils']);
+goog.addDependency('../../../mide/core/net.js', ['mide.config.net', 'mide.core.net'], ['goog.Uri', 'goog.events', 'goog.net.XhrIo', 'goog.net.XhrIoPool', 'goog.object', 'goog.uri.utils']);
 goog.addDependency('../../../mide/core/registry/base_registry.js', ['mide.config.registry', 'mide.core.registry', 'mide.core.registry.BaseRegistry'], []);
 goog.addDependency('../../../mide/core/registry/localstorage_registry.js', ['mide.registry.LocalstorageRegistry'], ['goog.array', 'goog.storage.mechanism.HTML5LocalStorage', 'mide.Component', 'mide.registry.BaseRegistry']);
 goog.addDependency('../../../mide/core/registry/serverregistry.js', ['mide.core.registry.ServerRegistry'], ['goog.array', 'goog.object', 'goog.uri.utils', 'mide.core.ComponentDescriptor', 'mide.core.net', 'mide.core.registry.BaseRegistry']);
@@ -28,7 +28,7 @@ goog.addDependency('../../../mide/ui/action/update.js', ['mide.ui.action.Update'
 goog.addDependency('../../../mide/ui/configuration_dialog.js', ['mide.ui.ConfigurationDialog'], ['goog.events', 'goog.object', 'goog.ui.Component', 'mide.ui.action.ActionFactory', 'mide.ui.action.Update', 'mide.ui.input.Autocomplete', 'mide.ui.input.Dropdown', 'mide.ui.input.InputFactory', 'mide.ui.input.TextInput', 'mide.util.OptionMap']);
 goog.addDependency('../../../mide/ui/input/autocomplete.js', ['mide.ui.input.Autocomplete'], ['goog.array', 'goog.dom', 'goog.ui.AutoComplete', 'goog.ui.AutoComplete.InputHandler', 'goog.ui.AutoComplete.Renderer', 'mide.ui.input.BaseInput', 'mide.ui.input.autocomplete.Matcher']);
 goog.addDependency('../../../mide/ui/input/autocomplete/matcher.js', ['mide.ui.input.autocomplete.Matcher'], ['goog.ui.AutoComplete.RemoteArrayMatcher', 'goog.uri.utils', 'mide.core.net']);
-goog.addDependency('../../../mide/ui/input/base_input.js', ['mide.ui.input.BaseInput'], ['goog.dom', 'goog.events.EventTarget']);
+goog.addDependency('../../../mide/ui/input/base_input.js', ['mide.ui.input.BaseInput'], ['goog.dom', 'goog.events.EventHandler', 'goog.events.EventTarget', 'mide.util.OptionMap']);
 goog.addDependency('../../../mide/ui/input/dropdown.js', ['mide.ui.input.Dropdown'], ['goog.dom', 'mide.ui.input.BaseInput']);
 goog.addDependency('../../../mide/ui/input/inputfactory.js', ['mide.ui.input.InputFactory'], ['goog.dom', 'mide.module.ModuleManager', 'mide.ui.input.ProxyInput']);
 goog.addDependency('../../../mide/ui/input/proxyinput.js', ['mide.ui.input.ProxyInput'], ['goog.object', 'mide.ui.input.BaseInput', 'mide.ui.input.TextInput']);

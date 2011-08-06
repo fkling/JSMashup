@@ -23,7 +23,9 @@ mide.ui.input.InputFactory = function(){};
 /**
  * Get input field with name <code>name</code>.
  * 
- * @param {string} name The fully qualified name
+ * @param {string} fqn The fully qualified name
+ * @param {string} name The configuration name of the input
+ * @param {string} label  The label of the input
  * @param {mide.util.OptionMap} opt_options Configuration options from
  *     the model file
  * @param {string} opt_ref A URL to the definition
@@ -31,12 +33,12 @@ mide.ui.input.InputFactory = function(){};
  * 
  * @public
  */
-mide.ui.input.InputFactory.prototype.get = function(name, opt_options, opt_ref) {
-    var Input = goog.getObjectByName(name);
+mide.ui.input.InputFactory.prototype.get = function(fqn, name, label, opt_options, opt_ref) {
+    var Input = goog.getObjectByName(fqn);
     if(Input) {
-    	return new Input(opt_options);
+    	return new Input(name, label, opt_options);
     }
-    var proxy = new mide.ui.input.ProxyInput(name, opt_ref, opt_options);
+    var proxy = new mide.ui.input.ProxyInput(fqn, opt_ref, name, label, opt_options);
     proxy.setManager(mide.module.ModuleManager.getInstance());
     
     return proxy;

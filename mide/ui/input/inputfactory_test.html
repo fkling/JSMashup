@@ -37,10 +37,10 @@
 	  foo.bar.Input = mockControl.createFunctionMock();
 	  var options = {foo: 'bar'},
 	      ret = {options: options};
-      foo.bar.Input(options).$does(function(options){ return ret});
+      foo.bar.Input('foo', 'bar', options).$does(function(options){ return ret});
       mockControl.$replayAll();
       
-      var f = factory.get('foo.bar.Input', options);
+      var f = factory.get('foo.bar.Input', 'foo', 'bar', options);
       
       assert(f === ret);
       mockControl.$verifyAll();
@@ -53,10 +53,10 @@
       var options = {foo: 'bar'},
           ret = {setManager: function(){}},
           url = 'foo';
-      mide.ui.input.ProxyInput('foo.bar.Input', url, options).$does(function(name, url, options){ return ret});
+      mide.ui.input.ProxyInput('foo.bar.Input', url, 'foo', 'bar', options).$does(function(name, url, options){ return ret});
       mockControl.$replayAll();
       
-      var f = factory.get('foo.bar.Input', options, url);
+      var f = factory.get('foo.bar.Input', 'foo', 'bar', options, url);
       
       assert(f === ret);
       mockControl.$verifyAll();

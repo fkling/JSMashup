@@ -1,10 +1,7 @@
 goog.provide('mide.ui.ConfigurationDialog');
+
 goog.require('mide.ui.input.InputFactory');
-goog.require('mide.ui.input.Dropdown');
-goog.require('mide.ui.input.Autocomplete');
-goog.require('mide.ui.input.TextInput');
-goog.require('mide.ui.action.Update');
-goog.require('mide.ui.action.ActionFactory');
+goog.require('mide.ui.input.BaseInput');
 goog.require('mide.util.OptionMap');
 
 goog.require('goog.ui.Component');
@@ -12,38 +9,39 @@ goog.require('goog.events');
 goog.require('goog.object');
 
 /**
- * Parent container for all configuration input elements
+ * Parent container for all configuration input elements.
  * 
- * @param {Array.<Object>} parameterConfig
+ * @param {Array} parameterConfig A array of configuration objects as returned
+ *     by the parser.
  * @constructor
  */
-mide.ui.ConfigurationDialog = function(paremterConfig) {
+mide.ui.ConfigurationDialog = function(inputConfig) {
 	goog.ui.Component.call(this);
 
 	this.fields = {};
 	
-	var parameter, options, renderer;
+	var parameter, options, renderer, ref, label, name;
 	
-	for(var i = 0, l = paremterConfig.length; i < l; i++) {
-		parameter = paremterConfig[i];
+	for(var i = 0, l = inputConfig.length; i < l; i++) {
+		input = inputConfig[i];
 		options = new mide.util.OptionMap();
-		renderer = 'text'; // default renderer is a text box
-		if(parameter.renderer) {
-			options =  new mide.util.OptionMap(parameter.renderer[0].option, this.fields, function(val) {
-				return val.getValue().value;
+		renderer = 'mide.ui.input.TextInput'; // default renderer is a text box
+		if(input.renderer) {
+			options =  new mide.util.OptionMap(input.renderer[0].option, this.fields, function(obj) {
+				var value = obj.getValue();
+				return goog.isObject(value) ? value.value : value;
 			});
-			renderer = parameter.renderer[0].type; 
+			renderer = input.renderer[0].type; 
+			ref = input.renderer[0].ref; 
 		}
-		options.set('label', parameter.label[0]['#text']);
-		options.set('name', parameter.name);
-		this.fields[parameter.name] = mide.ui.input.InputFactory.get(renderer, options, (parameter.renderer && parameter.renderer[0] && parameter.renderer[0].event || []));
+		label = input.label[0]['#text'];
+		name = input.name;
+		this.fields[name] = mide.ui.input.InputFactory.get(renderer, label, name, options, ref);
 		
 		// listen for the change event
-		goog.events.listen(this.fields[parameter.name], 'change', function() {
-			this.dispatchEvent({type: 'change'});
+		goog.events.listen(this.fields[name], mide.ui.input.BaseInput.Events.CHANGE, function() {
+			this.dispatchEvent({type: mide.ui.input.BaseInput.Events.CHANGE});
 		}, false, this);
-		
-		this.addChild(this.fields[parameter.name], true);
 	}
 };
 
@@ -69,7 +67,7 @@ mide.ui.ConfigurationDialog.prototype.getFields = function() {
 /**
  * Returns a map of configuration values
  * 
- * @return {Object.<string, string>}
+ * @return {Object}
  * @public
  */
 mide.ui.ConfigurationDialog.prototype.getConfiguration = function() {
@@ -81,7 +79,7 @@ mide.ui.ConfigurationDialog.prototype.getConfiguration = function() {
 /**
  * Sets a map of configuration values
  * 
- * @param {Object.<string, string>} config
+ * @param {Object} configuration map
  * @public
  */
 mide.ui.ConfigurationDialog.prototype.setConfiguration = function(config) {
@@ -92,6 +90,14 @@ mide.ui.ConfigurationDialog.prototype.setConfiguration = function(config) {
 	}, this);
 };
 
+/**
+ * @override
+ */
 mide.ui.ConfigurationDialog.prototype.createDom = function() {
-	this.element_ =  this.dom_.createDom('div', {'class': 'mashup-component-config'});
+	if(!this.element_) {
+		this.element_ =  this.dom_.createDom('div', {'class': 'mide.configuration_dialog'});
+		for(var name in fields) {
+			this.dom_.appendChild(this.element_, this.fields[name].render());
+		}
+	}
 };
