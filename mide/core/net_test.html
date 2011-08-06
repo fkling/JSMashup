@@ -11,12 +11,14 @@
   goog.require('goog.testing.jsunit');
   goog.require('goog.testing.net.XhrIoPool');
   goog.require('goog.uri.utils');
+  goog.require('goog.Uri');
   goog.require('mide.core.net');
 </script>
 </head>
 <body>
 <script>
-  var url = "http://www.google.com";
+  var url = "http://www.google.com",
+      base_url = 'http://foo.bar';
   var clock, mockControl, mockCompleteHandler, mockSuccessHandler, mockErrorHandler, xhr, options;
 
 
@@ -51,7 +53,65 @@
   
   function tearDown() {
 	  clock.dispose();
+	  mide.config.net.PROXY_URI = '';
+	  mide.config.net.PROXY_PARAMETER  = '';
 	}
+  
+  function testBuildUrl_relativePath() {
+	  var base = base_url + '/bar/';
+	  
+	  var result = mide.core.net.buildUri('baz/42', null, base);
+	  
+	  assertEquals(base + 'baz/42', result);
+  }
+  
+  function testBuildUrl_absolutePath() {
+      var base = base_url + '/bar/';
+      
+      var result = mide.core.net.buildUri('/baz/42', null, base);
+      
+      assertEquals(base_url  + '/baz/42', result);
+  }
+  
+  function testBuildUrl_replaceQueryAndFragment() {
+      var base = goog.Uri.parse(base_url).setQuery('foo=bar').setFragment('baz');
+      
+      var result = mide.core.net.buildUri('/baz/42', {foo: 'baz'}, base);
+      
+      assertEquals(base_url  + '/baz/42' + '?foo=baz', result);
+  }
+  
+  function testBuildUrl_absoulteUrlNoProxy() {
+      var base = goog.Uri.parse(base_url).setQuery('foo=bar').setFragment('baz');
+      var target = 'http://bar.foo/';
+
+      var result = mide.core.net.buildUri(target, {foo: 'baz'}, base);
+      
+      assertEquals(target + '?foo=baz', result);
+  }
+  
+  
+  function testBuildUrl_absoulteUrlWithProxy() {
+	  var p = mide.config.net.PROXY_URI = "http://aa.bb/proxy";
+	  var pp = mide.config.net.PROXY_PARAMETER = "someUri"
+      var base = goog.Uri.parse(base_url).setQuery('foo=bar').setFragment('baz');
+      var target = 'http://bar.foo/',
+          params = {foo: 'baz'};
+      var expectedResult = goog.uri.utils.appendParam(p, pp, goog.uri.utils.appendParamsFromMap(target, params));
+      
+      var result = mide.core.net.buildUri(target, params, base);
+      
+      assertEquals(expectedResult, result);
+  }
+  
+  function testBuildUrl_someDomainWithProxy() {
+      var base = goog.Uri.parse(base_url).setQuery('foo=bar').setFragment('baz');
+      var target = goog.Uri.parse(base_url).setPath('foo/bar').toString();
+
+      var result = mide.core.net.buildUri(target, null, base);
+      
+      assertEquals(target, result);
+  }
   
   function testMakeRequest_callComplete() {
 	   mockCompleteHandler.$times(1);

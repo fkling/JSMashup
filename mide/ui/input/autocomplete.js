@@ -23,7 +23,7 @@ mide.ui.input.Autocomplete = function(name, label, opt_options) {
 };
 
 goog.inherits(mide.ui.input.Autocomplete, mide.ui.input.BaseInput);
-mide.ui.input.TextInput.Events = mide.ui.input.BaseInput.Events;
+mide.ui.input.Autocomplete.Events = mide.ui.input.BaseInput.Events;
 
 /**
  * @override

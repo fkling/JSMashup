@@ -4,6 +4,7 @@ goog.provide('mide.config.net');
 goog.require('goog.net.XhrIo');
 goog.require('goog.net.XhrIoPool');
 goog.require('goog.uri.utils');
+goog.require('goog.Uri');
 goog.require('goog.events');
 goog.require('goog.object');
 
@@ -12,11 +13,32 @@ goog.require('goog.object');
  * @type {Object}
  */
 mide.config.net = {
-	PROXY_URL: ''
+	PROXY_URI: '',
+	PROXY_PARAMETER: 'uri'
 };
 
-mide.core.net.PROXY_URL = 'http://localhost:8080/proxy';
+/**
+ * Builds a URI that redirects to a proxy if provided to resolve
+ * cross domain calls.
+ *  
+ * @param {string} uri The target URI
+ * @param {Object} parameters A parameter map to append to the URI
+ * @param {string} base A base URI (default: location.href)
+ */
+mide.core.net.buildUri = function(uri, parameters, base) {
+	base = base || location.href;
+	paramters = parameters || {};
+    var current_uri = goog.Uri.parse(base);
+    // resolve relative urls
+    var target_uri = goog.Uri.resolve(current_uri, uri);
+    target_uri.setQuery(goog.uri.utils.buildQueryDataFromMap(parameters));
+    if(!goog.uri.utils.haveSameDomain(current_uri.toString(), target_uri.toString()) && mide.config.net.PROXY_URI) {
+    	return goog.uri.utils.appendParam(mide.config.net.PROXY_URI, mide.config.net.PROXY_PARAMETER, target_uri.toString());
+    }
+    return target_uri.toString();
+};
 
+//TODO: Remove or adjust
 mide.core.net.get = function(url, callback, parameters) {
 	var payload = goog.uri.utils.appendParamsFromMap(url, parameters);
 	var url = goog.uri.utils.appendParamsFromMap(mide.config.net.PROXY_URL, {url: payload});
@@ -29,8 +51,20 @@ mide.core.net.get = function(url, callback, parameters) {
 
 
 /**
- * Makes an Ajax request using `goog.net.XhrIoPool`. The event object is passed
- * to the callback function.
+ * Makes an Ajax request using `goog.net.XhrIoPool`.
+ * <br>
+ * Takes the following options:
+ * <ul>
+ * <li>url: The URI to make the request to (required)
+ * <li>parameters: A map of paramters to be appended to the URI
+ * <li>data: Any data to be sent in the request body. If it is a map,
+ *     the data will be form encoded
+ * <li>complete | success | error: callbacks
+ * <li>context: The object `this` should refer to in the callbacks
+ * <li>responseData: Either `text`, `xml` or `json`. If nothing provided,
+ *     the callbacks get the event object
+ * </ul>
+ * 
  * 
  * @param {{url: string, parameters: Object, 
  *          data: (Object|string), method: string, callback: function}} options_
@@ -44,7 +78,8 @@ mide.core.net.makeRequest = function(options_) {
 			complete: null,
 			success: null,
 			error: null,
-			context: null
+			context: null,
+			responseFormat: null
 	};
 	
 	goog.object.extend(options, options_);
@@ -59,27 +94,29 @@ mide.core.net.makeRequest = function(options_) {
 			}
 		}
 		
+		var parser = mide.core.net.makeRequest.parseResponse_;
+		
 		mide.core.net.getXhr(function(xhr){
 			var ek, sk;
 			sk = goog.events.listenOnce(xhr, goog.net.EventType.SUCCESS, function(e){				
-				if(options.success) options.success.call(options.context, e);
+				if(options.success) options.success.call(options.context, parser(e, options.responseFormat));
 				goog.events.removeAll(xhr, goog.net.EventType.ERROR);
 			});
 			
 			ek = goog.events.listenOnce(xhr, goog.net.EventType.ERROR, function(e){
-				if(options.error) options.error.call(options.context, e);
+				if(options.error) options.error.call(options.context, parser(e, options.responseFormat));
 				goog.events.removeAll(xhr, goog.net.EventType.SUCCESS);
 			});
 						
 			goog.events.listenOnce(xhr, goog.net.EventType.COMPLETE, function(e){
-				if(options.complete) options.complete.call(options.context, e);
+				if(options.complete) options.complete.call(options.context, parser(e, options.responseFormat));
 			});
 			
 			goog.events.listenOnce(xhr, goog.net.EventType.READY, function(e){
 				mide.core.net.releaseXhr(xhr);
 			});
 			
-			options.url = goog.uri.utils.appendParamsFromMap(options.url, options.parameters);
+			options.url = mide.core.net.buildUri(options.url, options.parameters);
 			xhr.send(options.url, options.method, options.data);
 		});
 	}
@@ -87,6 +124,33 @@ mide.core.net.makeRequest = function(options_) {
 	//var payload = goog.uri.utils.appendParamsFromMap(url, get_data);
 	//var url = goog.uri.utils.appendParamsFromMap(mide.core.net.PROXY_URL, {url: payload});
 };
+
+/**
+ * Utility function to parse the response.
+ * 
+ * @param {Object} event The Xhr event object
+ * @param {string} format
+ * @return {Object|string}
+ * 
+ * @private
+ */
+mide.core.net.makeRequest.parseResponse_ = function(event, format) {
+	var response = event.target,
+	    format = format ? format.toLowerCase() : '';
+	if (format === 'text') {
+		return response.getResponseText();
+	}
+	else if (format === 'xml') {
+		return response.getResponseXml();
+	}
+	else if (format === 'json') {
+		return response.getResponseJson();
+	}
+	else {
+		return event;
+	}
+};
+
 
 /**
  * @protected
@@ -105,45 +169,4 @@ mide.core.net.releaseXhr = function(xhr) {
 	if(mide.core.net.pool) {
 		mide.core.net.pool.releaseObject(xhr);
 	}
-};
-
-
-/**
- * Loads the script at {@code url} and evaluates it in global scope.
- * Uses the same implementation as jQuery see 
- * {@link https://github.com/jquery/jquery/blob/master/src/ajax/script.js}
- * 
- * @param {string} url the URL to load
- * @param {function} callback
- */
-mide.core.net.loadScript = function(url, callback) {
-	var script = document.createElement( "script" ),
-		head = document.head || document.getElementsByTagName( "head" )[0] || document.documentElement;
-
-	script.async = "async";
-	script.src = url;
-	// Attach handlers for all browsers
-	script.onload = script.onreadystatechange = function( _, isAbort ) {
-		if ( isAbort || !script.readyState || /loaded|complete/.test( script.readyState ) ) {
-
-			// Handle memory leak in IE
-			script.onload = script.onreadystatechange = null;
-
-			// Remove the script
-			if ( head && script.parentNode ) {
-				head.removeChild( script );
-			}
-
-			// Dereference the script
-			script = undefined;
-
-			// Callback if not abort
-			if ( !isAbort ) {
-				callback();
-			}
-		}
-	};
-	// Use insertBefore instead of appendChild  to circumvent an IE6 bug.
-	// This arises when a base node is used (#2709 and #4378).
-	head.insertBefore( script, head.firstChild );
 };

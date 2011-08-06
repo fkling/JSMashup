@@ -15,7 +15,7 @@ mide.ui.input.Dropdown = function(name, label, opt_options) {
 };
 
 goog.inherits(mide.ui.input.Dropdown, mide.ui.input.BaseInput);
-mide.ui.input.TextInput.Events = mide.ui.input.BaseInput.Events;
+mide.ui.input.Dropdown.Events = mide.ui.input.BaseInput.Events;
 
 /**
  * @override
