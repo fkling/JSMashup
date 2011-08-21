@@ -8,7 +8,7 @@ goog.require('goog.object');
 goog.require('goog.uri.utils');
 
 /**
- * A registry implementation using localstorage
+ * A registry implementation using a server
  * 
  * @constructor
  * @implements {mide.core.registry.BaseRegistry}
@@ -16,7 +16,12 @@ goog.require('goog.uri.utils');
 mide.core.registry.ServerRegistry = function(options) {
 	mide.core.registry.BaseRegistry.call(this, options);
 	
-	this.base_url = '';
+	this.base_url = options.base_url || '';
+	this.user_id = options.user_id  || '';
+	
+	this.components_url = this.base_url + '/components';
+	
+	this.userComponents_url = options.user_url || [this.base_url, this.user_id, 'components'].join('/');
 	
 	/**
 	 * @type {Object}
@@ -58,7 +63,7 @@ mide.core.registry.ServerRegistry.prototype.load = function(options, success, er
 	if(this.options.config_url) {
 		mide.core.net.makeRequest({
 			url: this.options.config_url,
-			success: function(event) {
+			success: function(txt, event) {
 				self.configure(event.target.getResponseText());
 				success(self);
 			},
@@ -132,12 +137,9 @@ mide.core.registry.ServerRegistry.prototype.getComponentDescriptorById = functio
 
 				switch(xhr.getStatus()) {
 				case 200:
-					var comp = xhr.getResponseJson();
-					var descr = new mide.core.ComponentDescriptor();
-					descr.setId(id);
-					descr.setXml(comp.model);
-					descr.setJs(comp.impl);
-
+					var data = xhr.getResponseJson();
+					var descr = self.getDescriptor_(id, data.model, data.implementation, data.data);
+					if(self.options.processor_manager) descr.setProcessorManager(self.options.processor_manager);
 					self.componentDescriptors_[id] = descr;
 					success(descr);
 					break;
@@ -161,33 +163,29 @@ mide.core.registry.ServerRegistry.prototype.getComponentDescriptorByUrl = functi
 /**
  * @overwrite
  */
-mide.core.registry.ServerRegistry.prototype.saveComponent = function(descriptor, success, error) {
-	var url, 
-		id = descriptor.getId(),
-		self = this;
+mide.core.registry.ServerRegistry.prototype.saveComponent = function(id, model, implementation, data, success, error) {
+	var self = this,
+		descr = this.getDescriptor_(id, model, implementation, data),
+		id = descr.getId();
 	 
 	if(id) {
-		url =  self.components_url + '/' + id
-		mide.core.net.getXhr(function(xhr){
-			goog.events.listen(xhr, goog.net.EventType.COMPLETE, function(evt) {
-				var xhr = evt.target;
-
-				switch(xhr.getStatus()) {
-				case 204:
-				case 209:
-					if(!(id in self.componentDescriptors_)) {
-						self.componentDescriptors_[id] = descriptor;
-						self.componentsArray_.push(descriptor);
-					}
-					success(descriptor);
-					break;
-				case 409:
-					error(xhr.getResponseText());
-				}
-			});
-			xhr.send(url, 'PUT', goog.uri.utils.buildQueryDataFromMap({
-				model: descriptor.getXml() || '', 
-				impl: descriptor.getJs() || ''}));
+		mide.core.net.makeRequest({
+			url:  self.components_url + '/' + id,
+			method: 'PUT',
+			data: {
+				id: descr.getId(),
+				model: descr.getModel(),
+				implementation: descr.getImplementation(),
+				data: JSON.stringify(descr.getData())
+			},
+			success: function() {
+				//if(!(id in self.componentDescriptors_)) {
+					self.componentDescriptors_[id] = descr;
+					//self.componentsArray_.push(descr);
+				//}
+				success(descr);
+			},
+			error: error
 		});
 	}
 };
@@ -195,28 +193,18 @@ mide.core.registry.ServerRegistry.prototype.saveComponent = function(descriptor,
 /**
  * @overwrite
  */
-mide.core.registry.ServerRegistry.prototype.deleteComponent = function(descriptor, success, error) {
-	var url, 
-		id = descriptor.getId(),
-		self = this;
+mide.core.registry.ServerRegistry.prototype.deleteComponent = function(id, success, error) {
+	var self = this;
 	 
-	if(id && self.componentDescriptors_[id]) {
-		url =  this.base_url + descriptor.getId();
-		mide.core.net.getXhr(function(xhr){
-			goog.events.listen(xhr, goog.net.EventType.COMPLETE, function(evt) {
-				var xhr = evt.target;
-
-				switch(xhr.getStatus()) {
-				case 204:
-					delete self.componentDescriptors_[id];
-					self.componentsArray_.splice(self.componentsArray_.indexOf(descriptor), 1);
-					success('Component with id ' + id + ' was delted successfully');
-					break;
-				case 403:
-					error(xhr.getResponseText());
-				}
-			});
-			xhr.send(url, 'DELETE');
+	if(id) {
+		mide.core.net.makeRequest({
+			url: self.components_url + '/' + id,
+			method: 'DELETE',
+			success: function() {
+				delete self.componentDescriptors_[id];
+				success('Component with id ' + id + ' was delted successfully');
+			},
+			error: error
 		});
 	}
 };
@@ -229,7 +217,7 @@ mide.core.registry.ServerRegistry.prototype.loadComponents_ = function(url, targ
 	
 	mide.core.net.makeRequest({
 		url: url,
-		success: function(e) {
+		success: function(txt, e) {
 			var components = e.target.getResponseJson();
 			goog.array.sortObjectsByKey(components, 'name');
 			goog.array.extend(target, components);

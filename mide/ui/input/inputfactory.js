@@ -1,6 +1,8 @@
 goog.provide('mide.ui.input.InputFactory');
 
 goog.require('mide.ui.input.ProxyInput');
+goog.require('mide.ui.input.Autocomplete');
+goog.require('mide.ui.input.Dropdown');
 goog.require('mide.module.ModuleManager');
 
 goog.require('goog.dom');

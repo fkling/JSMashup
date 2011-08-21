@@ -86,15 +86,15 @@ mide.util.OptionMap.prototype.extractorFunc_ = null;
 mide.util.OptionMap.prototype.parseOptions_ = function(options, context, extractor_func) {
 	options = options || [];
 	var value;
-	for(var i = options.length; i--; ) {
-		if(options[i].option) {
-			value = new mide.util.OptionMap(options[i].option, context, extractor_func);
+	for(var k in options) {
+		if(goog.isObject(options[k])) {
+			value = new mide.util.OptionMap(options[k], context, extractor_func);
 		}
 		else {
-			value = options[i].value;
+			value = options[k];
 		}
-		this.optionsMap_[options[i].name] = value;
-		this.optionsArray_[i] = {name: options[i].name, value: value};
+		this.optionsMap_[k] = value;
+		this.optionsArray_.push({name: k, value: value});
 	}
 };
 

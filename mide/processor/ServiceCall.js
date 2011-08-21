@@ -1,19 +1,20 @@
-goog.provide('mide.ServiceCallConverter');
+goog.provide('org.reseval.processor.ServiceCall');
 goog.require('mide.core.net');
+goog.require('mide.core.Session');
 
 goog.require('goog.dom');
 
-mide.ServiceCallConverter = function(config) {
+org.reseval.processor.ServiceCall = function(config) {
 	this.config = config || {};
 	this.data = {};
 	this.output = goog.dom.createElement('div');
 };
 
-mide.ServiceCallConverter.prototype.setComponentInstance = function(component) {
+org.reseval.processor.ServiceCall.prototype.setComponentInstance = function(component) {
 	this.component = component;
 };
 
-mide.ServiceCallConverter.prototype.perform = function(operation, params, next) {
+org.reseval.processor.ServiceCall.prototype.perform = function(operation, params, next) {
 	var self = this,
 		config = this.config[operation];
 	this.data[operation] = {};
@@ -23,16 +24,20 @@ mide.ServiceCallConverter.prototype.perform = function(operation, params, next) 
 		this.data[operation].cacheKey = controlData.cacheKey;
 	}
 	else {
-		this.data[operation].cacheKey = mide.Session.getInstance().getId() + this.component.getId();
+		this.data[operation].cacheKey = mide.core.Session.getInstance().getId() + this.component.getId();
 	}
 	
 	if(config && config.url) {
-		mide.core.net.makeRequest(config.url, {key: this.data[operation].cacheKey, data: 'yes', fetch: 10}, null, function(response) {
-			self.output.innerHTML = JSON.stringify(response);
-			self.data[operation].cacheKey = response.cacheKey;
-			self.data[operation].dataObject = response.dataObject;
-			if(config.passthrough) {
-				next(response.dataObject);
+		mide.core.net.makeRequest({
+			url: config.url, 
+			parameters: {key: this.data[operation].cacheKey, data: 'yes', fetch: 10}, 
+			complete: function(response) {
+				self.output.innerHTML = JSON.stringify(response);
+				self.data[operation].cacheKey = response.cacheKey;
+				self.data[operation].dataObject = response.dataObject;
+				if(config.passthrough) {
+					next(response.dataObject);
+				}
 			}
 		});
 	}
@@ -41,7 +46,7 @@ mide.ServiceCallConverter.prototype.perform = function(operation, params, next) 
 	}
 };
 
-mide.ServiceCallConverter.prototype.triggerEvent = function(event, params, next) {
+org.reseval.processor.ServiceCall.prototype.triggerEvent = function(event, params, next) {
 	var data = this.data[event] || this.data[event+'Output'] || this.data[event.replace('Output', '')] || {};
 	params = {
 			controlData: {cacheKey: data.cacheKey},
@@ -52,13 +57,13 @@ mide.ServiceCallConverter.prototype.triggerEvent = function(event, params, next)
 };
 
 
-mide.ServiceCallConverter.prototype.makeRequest = function(name, url, getParams, postParams, next) {
+org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, url, getParams, postParams, next) {
 	var config = this.config[name];
 	
 	
 	if(config && config.url) {
 		this.data[name] = {};
-		this.data[name].cacheKey =  mide.Session.getInstance().getId() + this.component.getId();
+		this.data[name].cacheKey =  mide.core.Session.getInstance().getId() + this.component.getId();
 		
 		url = config.url;
 		getParams.key = this.data[name].cacheKey;
@@ -68,7 +73,7 @@ mide.ServiceCallConverter.prototype.makeRequest = function(name, url, getParams,
 	next(name, url, getParams, postParams);
 };
 
-mide.ServiceCallConverter.prototype.makeResponse = function(name, response) {
+org.reseval.processor.ServiceCall.prototype.makeResponse = function(name, response) {
 		this.output.innerHTML = JSON.stringify(response);
 		this.data[name].cacheKey = response.cacheKey;
 		this.data[name].dataObject = response.dataObject;
@@ -76,6 +81,6 @@ mide.ServiceCallConverter.prototype.makeResponse = function(name, response) {
 		return response.dataObject;
 };
 
-mide.ServiceCallConverter.prototype.getContentNode = function() {
+org.reseval.processor.ServiceCall.prototype.getContentNode = function() {
 	return this.output;
 };

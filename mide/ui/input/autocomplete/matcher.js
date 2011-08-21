@@ -18,7 +18,7 @@ goog.require('goog.uri.utils');
  * @constructor
  * @extends goog.ui.AutoComplete.RemoteArrayMatcher
  */
-mide.ui.input.autocomplete.Matcher = function(tokenName, parser, url, opt_noSimilar) {
+mide.ui.input.autocomplete.Matcher = function(tokenName, url, parser, opt_noSimilar) {
 	this.tokenName_ = tokenName;
 	this.parser_ = parser;
 	goog.base(this, url, opt_noSimilar);

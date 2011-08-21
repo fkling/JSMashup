@@ -1,10 +1,11 @@
 goog.provide('mide.core.Component');
 goog.provide('mide.core.Component.Events');
+
 goog.require('mide.PubSub');
-goog.require('mide.OperationHistory');
+goog.require('mide.core.OperationManager');
 goog.require('mide.ui.ConfigurationDialog');
 
-goog.require('goog.ui.Component');
+goog.require('goog.events.EventTarget');
 goog.require('goog.dom');
 goog.require('goog.dom.classes');
 goog.require('goog.array');
@@ -18,21 +19,17 @@ mide.core.Component = function(componentDescriptor, opt_id, opt_config, opt_domH
 	this.id = opt_id || goog.ui.IdGenerator.getInstance().getNextUniqueId();
 	this.descriptor = componentDescriptor;
 
-
-	this.events = componentDescriptor.getEvents();
-	this.operations = componentDescriptor.getOperations();
 	this.outputBuffer = {};
 	this.inputBuffer = {};
 	this.dataProcessors = [];
-	this.finishedOperations = {};
-	this.connectionStatus = {};
 	
-	this.history = new mide.OperationHistory(this);
+	this.operationManager = new mide.core.OperationManager(this.descriptor.getOperations());
 
 	
-	this.configuration_dialog = new mide.ui.ConfigurationDialog(componentDescriptor.getParameters());
+	this.configurationDialog = new mide.ui.ConfigurationDialog(componentDescriptor.getParameters());
+	this.configurationDialog.createDom();
 	
-	goog.events.listen(this.configuration_dialog, 'change', function() {
+	goog.events.listen(this.configurationDialog, 'change', function() {
 		this.dispatchEvent({type: mide.core.Component.Events.CONFIG_CHANGED});
 	}, false, this);
 	
@@ -41,7 +38,7 @@ mide.core.Component = function(componentDescriptor, opt_id, opt_config, opt_domH
 	}
 };
 
-goog.inherits(mide.core.Component, goog.ui.Component);
+goog.inherits(mide.core.Component, goog.events.EventTarget);
 
 
 /**
@@ -55,7 +52,14 @@ mide.core.Component.prototype.id = null;
  * @type {mide.ui.ConfigurationDialog}
  * @private
  */
-mide.core.Component.prototype.configurationDialog = '';
+mide.core.Component.prototype.configurationDialog = null;
+
+/**
+ * @type {mide.core.OperationManager}
+ * @private
+ */
+mide.core.Component.prototype.operationManager = null;
+
 
 /**
  * @type {Object.<string, {finished: boolean, requiredInputs: Array.<string>, depends: Array.<string>}>}
@@ -95,49 +99,46 @@ mide.core.Component.prototype.inputBuffer = null;
 mide.core.Component.prototype.dataProcessors = null;
 
 /**
- * Stores connection status of operations and events
+ * Called when operation starts.
  * 
- * @type {Object.<string, boolean>}
- * @private
+ * @public
  */
-mide.core.Component.prototype.connectionStatus = null;
+mide.core.Component.prototype.onOperationStart = function(){};
 
 
 /**
- * Stores connection status of operations and events
+ * Called when operation ends.
  * 
- * @type {Object.<string, boolean>}
- * @private
+ * @public
  */
-mide.core.Component.prototype.finishedOperations = null;
+mide.core.Component.prototype.onOperationEnd = function(){};
 
 
 /**
- * Keeps track of the executed operations.
+ * @param {string} id
  * 
- * @type {mide.OperationHistory}
- * @private
+ * @public
  */
-mide.core.Component.prototype.history = null;
-
-
-
-
-
 mide.core.Component.prototype.setId = function(id) {
 	if(id) {
 		this.id = id;	
 	}
 };
 
+/**
+ * @return {string}
+ * 
+ * @public
+ */
 mide.core.Component.prototype.getId = function() {
 	return this.id;
 };
 
 
 /**
+ * @return {mide.ui.ConfigurationDialog}
  * 
- * @returns {mide.ui.ConfigurationDialog}
+ * @public
  */
 mide.core.Component.prototype.getConfigurationDialog = function() {
 	return this.configurationDialog;
@@ -145,8 +146,9 @@ mide.core.Component.prototype.getConfigurationDialog = function() {
 
 
 /**
+ * @return {mide.core.ComponentDescriptor}
  * 
- * @returns {mide.core.ComponentDescriptor}
+ * @public
  */
 mide.core.Component.prototype.getDescriptor = function() {
 	return this.descriptor;
@@ -156,8 +158,10 @@ mide.core.Component.prototype.getDescriptor = function() {
 /**
  * Tests whether the component can run or that.
  * This is determined by
- * 1. The component has an autorun method.
- * 2. The component has input data to work with.
+ * <ol>
+ * <li>The component has an autorun method.
+ * <li>The component has input data to work with.
+ * </ol>
  * 
  * @return {boolean}
  */
@@ -168,11 +172,11 @@ mide.core.Component.prototype.isRunnable = function() {
 
 /**
  * Runs a component. This will either execute the 
- * autorun method or 
+ * autorun method or replay the history
  * 
  */
 mide.core.Component.prototype.run = function() {
-	return this.descriptor.autorun || this.history.getSize() > 0;
+	//TODO: Implement
 };
 
 
@@ -184,12 +188,12 @@ mide.core.Component.prototype.run = function() {
  * @param {Object} params
  * @protected
  */
-mide.core.Component.prototype.triggerEvent = function(event, params) {
+mide.core.Component.prototype.triggerEvent = function(name, params) {
 	var self = this;
 	if(this.id) {
-		if(event in this.operations) {
+		if(this.operationManager.hasOperation(name)) {
 			// operation was performed
-			this.end(event);
+			this.end(name);
 		}
 		var converters = [],
 			dataProcessors = this.dataProcessors.slice();
@@ -201,7 +205,7 @@ mide.core.Component.prototype.triggerEvent = function(event, params) {
 		
 		var next = function(data) {
 			if(converters[0]) {
-				converters.shift().triggerEvent(event, data, next);
+				converters.shift().triggerEvent(name, data, next);
 			}
 			else {
 				self.triggerEventInternal(event, data);
@@ -218,9 +222,10 @@ mide.core.Component.prototype.triggerEvent = function(event, params) {
  * @param {Object} params
  * @private
  */
-mide.core.Component.prototype.triggerEventInternal = function(event, params) {
-	this.outputBuffer[event] = params;
-	mide.PubSub.triggerEvent(this, event, params);
+mide.core.Component.prototype.triggerEventInternal = function(name, params) {
+	name = 'output_' + name;
+	this.outputBuffer[name] = params;
+	mide.PubSub.triggerEvent(this, name, params);
 };
 
 
@@ -256,15 +261,16 @@ mide.core.Component.prototype.setConfiguration = function(config) {
  * @public
  */
 mide.core.Component.prototype.perform = function(operation, params) {
-	var op = this.operations[operation],
+	operation = operation.replace(/^input_/, '');
+	var op = this.operationManager.getOperation(operation),
 		self = this;
 	if(op) {
 		// cache parameters for later invocation
 		this.inputBuffer[operation] = params;
 		// record operation in history
-		this.history.push(operation, params);
+		this.operationManager.record(operation, params);
 		
-		if(this.hasUnfulfilledDependencies(operation)) {
+		if(this.operationManager.hasUnresolvedDependencies(operation)) {
 			return;
 		}
 		else {
@@ -300,22 +306,22 @@ mide.core.Component.prototype.perform = function(operation, params) {
  * @private
  */
 mide.core.Component.prototype.performInternal = function(operation, params) {
-	var op = this.operations[operation],
+	var op = this.operationManager.getOperation(operation),
 		func;
 	
-	if(this.validateInput(operation, params)) {
+	if(op.isInputValid(params)) {
 		var self = this;
 		func = this['op_' + operation] || function(){
 			if (operation+"Output" in self.events) {
-				self.triggerEvent(operation+"Output", {});
+				self.triggerEvent(operation, {});
 			}
 		};
-		if(!op.async) {
+		if(!op.isAsync()) {
 			var old_func = func;
 			// we can mark the operation as finished automatically
 			func = function(params) {
 				old_func.call(this, params);
-				this.markOperationAsFinished(operation);
+				this.operationManager.resolve(operation);
 			};
 		}
 		func.call(this, params);	
@@ -325,31 +331,6 @@ mide.core.Component.prototype.performInternal = function(operation, params) {
 	}
 };
 
-
-/**
- * Checks if all required input parameters are passed.
- * 
- * @param {string} operation the name of the operation
- * @param {Object.<string, ?>} params parameters
- * @private
- */
-mide.core.Component.prototype.validateInput = function(operation, params) {
-	var op = this.operations[operation],
-		i;
-	if(op) {
-		i = op.requiredInputs.length;
-		if(i === 0) {
-			return true;
-		}
-		while(i--) {
-			if(!params.hasOwnProperty(op.requiredInputsp[i])) {
-				return false;
-			}
-		}
-		return true;
-	}
-	return false;
-};
 
 /**
  * Used internally to make a named Ajax request, as defined in the 
@@ -371,7 +352,7 @@ mide.core.Component.prototype.validateInput = function(operation, params) {
 mide.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb) {
 	this.start(name);
 	var self = this;
-	
+	//TODO Update to new net interface
 	var convertersRequest = [],
 		dataProcessors = this.dataProcessors.slice();
 	dataProcessors.reverse();
@@ -386,11 +367,16 @@ mide.core.Component.prototype.makeRequest = function(name, url, getData, postDat
 			convertersRequest.shift().makeRequest(name, url, getData, postData, next);
 		}
 		else {
-			mide.net.makeRequest(url, getData, postData, function(response) {
-				while(convertersResponse[0]) {
-					response = convertersResponse.shift().makeResponse(name, response);
+			mide.core.net.makeRequest({
+				url: url, 
+				parameters: getData, 
+				data: postData, 
+				complete: function(response) {
+					while(convertersResponse[0]) {
+						response = convertersResponse.shift().makeResponse(name, response);
+					}
+					cb(response);
 				}
-				cb(response);
 			});
 		}
 	};
@@ -406,7 +392,7 @@ mide.core.Component.prototype.makeRequest = function(name, url, getData, postDat
  */
 mide.core.Component.prototype.start = function(operation) {
     this.dispatchEvent({type: mide.core.Component.Events.OPSTART, operation: operation});
-    goog.dom.classes.add(this.element_, 'active');
+    this.onOperationStart(operation);
 };
 
 /**
@@ -418,52 +404,9 @@ mide.core.Component.prototype.start = function(operation) {
  */
 mide.core.Component.prototype.end = function(operation) {
 	this.dispatchEvent({type: mide.core.Component.Events.OPEND, operation: operation});
-	goog.dom.classes.remove(this.element_, 'active');
-	goog.dom.classes.add(this.element_, 'done');
+	this.onOperationEnd(operation);
 };
 
-
-/**
- * Checks whether all operations this operation depends on are run.
- * 
- * @param {string} operation the name of the operation
- * @private
- */
-mide.core.Component.prototype.hasUnfulfilledDependencies = function(operation) {
-	var deps = this.operations[operation].depends,
-		l = deps.length;
-	if(l === 0) {
-		return false;
-	}
-	
-	while(l--) {
-		if(!this.finishedOperations[deps[l]]) {
-			return true;
-		}
-	}
-	return false;
-};
-
-
-/**
- * To properly manage dependencies, we need to know when an operation
- * is completed. This is needed for operations that run asynchronous code.
- * 
- * @param {string} operation the name of the operation
- * @private
- */
-mide.core.Component.prototype.markOperationAsFinished = function(operation) {
-	this.finishedOperations[operation] = true;
-	this.end(operation);
-	
-	// see whether there are any operations that depend on this one
-	// and run them
-	for(var op in this.operations) {
-		if(goog.array.indexOf(this.operations[op].depends, operation) && op in this.inputBuffer) {
-			this.perform(op, this.inputBuffer[op]);
-		}
-	}
-};
 
 
 /**
@@ -476,14 +419,10 @@ mide.core.Component.prototype.markOperationAsFinished = function(operation) {
  */
 mide.core.Component.prototype.connect = function(src, event, target, operation) {
 	if(src === this) {
-		this.connectionStatus[event] = true;
 		mide.PubSub.connect(this, event, target, operation);
 		if(this.outputBuffer[event]) {
 			mide.PubSub.triggerEvent(this, event, this.outputBuffer[event]);
 		}
-	}
-	else {
-		this.connectionStatus[operation] = true;
 	}
 };
 
@@ -496,14 +435,12 @@ mide.core.Component.prototype.connect = function(src, event, target, operation) 
  */
 mide.core.Component.prototype.disconnect = function(src, event, target, operation) {
 	if(src === this) {
-		this.connectionStatus[event] = false;
 		mide.PubSub.disconnect(this, event, target, operation);
 	}
 	else {
-		this.connectionStatus[operation] = false;
-		delete this.finishedOperations[operation];
+		operation = operation.replace(/^input_/, '');
+		this.operationManager.purge(operation);
 		delete this.inputBuffer[operation];
-		this.history.purge(operation);
 	}
 };
 
@@ -517,7 +454,7 @@ mide.core.Component.prototype.disconnect = function(src, event, target, operatio
  * @private
  */
 mide.core.Component.prototype.getContentNode = function() {
-	var div = this.dom_.createElement('div'),
+	var div = document.createElement('div'),
 		content = this.getContentNodeInternal();
 	if(content) {
 		div.appendChild(content);
@@ -531,46 +468,68 @@ mide.core.Component.prototype.getContentNode = function() {
 	return div;
 };
 
-/**
- * A function that has to be overwritten by subclasses.
- * Returns the GUI DOM node for this component.
- * 
- * @return {?Element}
- * 
- * @protected
- */
+
 mide.core.Component.prototype.getContentNodeInternal = function() {
 	
 };
 
 
-mide.core.Component.prototype.addDataProcessor = function(converter) {
-	converter.setComponentInstance(this);
-	this.dataProcessors.push(converter);
+mide.core.Component.prototype.addDataProcessor = function(processor) {
+	processor.setComponentInstance(this);
+	this.dataProcessors.push(processor);
 };
 
-
-/**
- * @override
- */
-mide.core.Component.prototype.createDom = function() {
-	this.element_ =  this.dom_.createDom('div', {'class': 'mashup-component'});
-	this.content_ = content = this.dom_.createDom('div', {'class': 'mashup-component-content'});
-
-	this.dom_.append(this.element_,content);
-};
-
-/**
- * @override
- */
-mide.core.Component.prototype.decorateInternal = function(element) {
-	if(!this.element_) {
-		this.createDom();		
+mide.core.Component.prototype.setDataProcessors = function(processors) {
+	for(var i = 0, l = processors.length; i < l; i++) {
+		this.addDataProcessor(processors[i]);
 	}
-	this.dom_.removeChildren(element);
-	goog.dom.insertChildAt(this.content_, this.getContentNode(), 0);
-	this.dom_.append(element, this.element_);
 };
+
+/**
+ * @param {Object}
+ */
+mide.core.Component.prototype.setData = function(data, value) {
+	this.descriptor.setData(data, value);
+};
+
+/**
+ * @param {Object} a map of mide.core.Parameter 
+ */
+mide.core.Component.prototype.getData = function(key) {
+	return this.descriptor.getData(key);
+};
+
+
+
+mide.core.Component.prototype.getInputs = function() {
+	var operations = this.operationManager.getOperations(),
+		inputs = [];
+	for(var name in operations) {
+		if(!operations[name].isInternal()) {
+			inputs.push('input_' + name);
+		}	
+	}
+	return inputs;
+};
+
+
+mide.core.Component.prototype.getOutputs = function() {
+	var operations = this.operationManager.getOperations(),
+		outputs = [];
+	for(var name in operations) {
+		if(operations[name].getOutputs().length > 0) {
+			outputs.push('output_' + name);
+		}
+	}
+	
+	var events = this.descriptor.getEvents();
+	for(var j = events.length; j--; ) {
+		outputs.push('output_' + events[j].ref);
+	}
+	return outputs;
+};
+
+
 
 /**
  * List of events 
@@ -582,4 +541,3 @@ mide.core.Component.Events = {
 		OPEND: 'opend',
 		CONFIG_CHANGED: 'config_changed'
 };
-

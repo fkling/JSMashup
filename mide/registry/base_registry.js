@@ -8,6 +8,7 @@ goog.provide('mide.config.registry');
  * from `mide.core.registry.BaseRegistry`. The `options` property will
  * be passed to constructor.
  * 
+ * @abstract
  * @public
  */
 mide.config.registry = {
@@ -44,12 +45,6 @@ mide.core.registry.BaseRegistry = function(options) {
 	this.options = options || {};
 };
 
-/**
- * @public
- */
-mide.core.registry.BaseRegistry.prototype.load = function(cb) {
-	cb(this);
-};
 
 /**
  * Get a list of all users components
@@ -96,6 +91,40 @@ mide.core.registry.BaseRegistry.prototype.getComponentDescriptorById = function(
 mide.core.registry.BaseRegistry.prototype.getComponentDescriptorByUrl = function(url, success, error) {
 	
 };
+
+
+/**
+ * Get component descriptor via URL
+ * 
+ * @param {string} url of the model file
+ * @param {function(Array.<mshupIDE.core.ComponentDescriptor>)} success callback
+ * @param {function(string)} error callback
+ * @public
+ */
+mide.core.registry.BaseRegistry.prototype.getComponentDescriptorByUrl = function(url, success, error) {
+	
+};
+
+/**
+ * Returns a new component descriptor.
+ * 
+ * @private
+ */
+mide.core.registry.BaseRegistry.prototype.getDescriptor_ = function(id, model, implementation, data) {
+	try {
+		return this.options.converter.getDescriptor(id, model, implementation, data);
+	}
+	catch(e) {
+		console.log(e);
+		var descr = new mide.core.ComponentDescriptor();
+		descr.setId(id);
+		descr.setModel(model);
+		descr.setImplementation(implementation);
+		descr.setData(data);
+		return descr;
+	}
+};
+
 
 /**
  * Save component

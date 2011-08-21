@@ -24,6 +24,7 @@ mide.config.net = {
  * @param {string} uri The target URI
  * @param {Object} parameters A parameter map to append to the URI
  * @param {string} base A base URI (default: location.href)
+ * @return {string} Resolved URI
  */
 mide.core.net.buildUri = function(uri, parameters, base) {
 	base = base || location.href;
@@ -56,12 +57,12 @@ mide.core.net.get = function(url, callback, parameters) {
  * Takes the following options:
  * <ul>
  * <li>url: The URI to make the request to (required)
- * <li>parameters: A map of paramters to be appended to the URI
+ * <li>parameters: A map of parameters to be appended to the URI
  * <li>data: Any data to be sent in the request body. If it is a map,
  *     the data will be form encoded
  * <li>complete | success | error: callbacks
  * <li>context: The object `this` should refer to in the callbacks
- * <li>responseData: Either `text`, `xml` or `json`. If nothing provided,
+ * <li>responseFormat: Either `text`, `xml` or `json`. If nothing provided,
  *     the callbacks get the event object
  * </ul>
  * 
@@ -99,17 +100,17 @@ mide.core.net.makeRequest = function(options_) {
 		mide.core.net.getXhr(function(xhr){
 			var ek, sk;
 			sk = goog.events.listenOnce(xhr, goog.net.EventType.SUCCESS, function(e){				
-				if(options.success) options.success.call(options.context, parser(e, options.responseFormat));
+				if(options.success) options.success.call(options.context, parser(e, options.responseFormat), e);
 				goog.events.removeAll(xhr, goog.net.EventType.ERROR);
 			});
 			
 			ek = goog.events.listenOnce(xhr, goog.net.EventType.ERROR, function(e){
-				if(options.error) options.error.call(options.context, parser(e, options.responseFormat));
+				if(options.error) options.error.call(options.context, parser(e, options.responseFormat), e);
 				goog.events.removeAll(xhr, goog.net.EventType.SUCCESS);
 			});
 						
 			goog.events.listenOnce(xhr, goog.net.EventType.COMPLETE, function(e){
-				if(options.complete) options.complete.call(options.context, parser(e, options.responseFormat));
+				if(options.complete) options.complete.call(options.context, parser(e, options.responseFormat), e);
 			});
 			
 			goog.events.listenOnce(xhr, goog.net.EventType.READY, function(e){
@@ -147,7 +148,7 @@ mide.core.net.makeRequest.parseResponse_ = function(event, format) {
 		return response.getResponseJson();
 	}
 	else {
-		return event;
+		return response.getResponseText();
 	}
 };
 

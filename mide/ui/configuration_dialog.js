@@ -15,32 +15,41 @@ goog.require('goog.object');
  *     by the parser.
  * @constructor
  */
-mide.ui.ConfigurationDialog = function(inputConfig) {
+mide.ui.ConfigurationDialog = function(parameters) {
 	goog.ui.Component.call(this);
 
 	this.fields = {};
+	this.dependencies = {};
+	var IF = mide.ui.input.InputFactory.getInstance();
+	var parameter, options, renderer, ref, rendererConfig;
 	
-	var parameter, options, renderer, ref, label, name;
-	
-	for(var i = 0, l = inputConfig.length; i < l; i++) {
-		input = inputConfig[i];
-		options = new mide.util.OptionMap();
+	for(var i = 0, l = parameters.length; i < l; i++) {
+		parameter = parameters[i];
+		rendererConfig = new mide.util.OptionMap();
 		renderer = 'mide.ui.input.TextInput'; // default renderer is a text box
-		if(input.renderer) {
-			options =  new mide.util.OptionMap(input.renderer[0].option, this.fields, function(obj) {
+		options = parameter.getData();
+		if(options.renderer) {
+			rendererConfig =  new mide.util.OptionMap(options.renderer, this.fields, function(obj) {
 				var value = obj.getValue();
 				return goog.isObject(value) ? value.value : value;
 			});
-			renderer = input.renderer[0].type; 
-			ref = input.renderer[0].ref; 
+			renderer = options.renderer.type;  
 		}
-		label = input.label[0]['#text'];
-		name = input.name;
-		this.fields[name] = mide.ui.input.InputFactory.get(renderer, label, name, options, ref);
+		this.fields[parameter.getRef()] = IF.get(renderer, parameter.getRef(), options.label, rendererConfig);
+		
+		var deps = parameter.getDependencies();
+		for(var j = deps.length; j--;) {
+			var rdeps = this.dependencies[deps[j]] || (this.dependencies[deps[j]] = []);
+			rdeps.push(parameter.getRef());
+		};
 		
 		// listen for the change event
-		goog.events.listen(this.fields[name], mide.ui.input.BaseInput.Events.CHANGE, function() {
+		goog.events.listen(this.fields[parameter.getRef()], mide.ui.input.BaseInput.Events.CHANGE, function(event) {
 			this.dispatchEvent({type: mide.ui.input.BaseInput.Events.CHANGE});
+			var rdeps = this.dependencies[event.target.getName()];
+			for(var i = rdeps.length; i--; ) {
+				this.fields[rdeps[i]].update();
+			}
 		}, false, this);
 	}
 };
@@ -96,7 +105,7 @@ mide.ui.ConfigurationDialog.prototype.setConfiguration = function(config) {
 mide.ui.ConfigurationDialog.prototype.createDom = function() {
 	if(!this.element_) {
 		this.element_ =  this.dom_.createDom('div', {'class': 'mide.configuration_dialog'});
-		for(var name in fields) {
+		for(var name in this.fields) {
 			this.dom_.appendChild(this.element_, this.fields[name].render());
 		}
 	}

@@ -16,6 +16,8 @@ mide.core.ComponentDescriptor = function() {
 	this.operations = {};
 	this.events = {};
 	this.parameters = {};
+	this.data = {};
+	this.processorManager = null;
 };
 
 /**
@@ -26,47 +28,48 @@ mide.core.ComponentDescriptor.prototype.id = null;
 
 
 /**
- * @type {string}
+ * @type {Object|string}
  * @private
  */
-mide.core.ComponentDescriptor.prototype.name = '';
+mide.core.ComponentDescriptor.prototype.model = '';
 
 /**
  * @type {string}
  * @private
  */
-mide.core.ComponentDescriptor.prototype.xml = '';
+mide.core.ComponentDescriptor.prototype.implementation = '';
 
 /**
- * @type {string}
- * @private
- */
-mide.core.ComponentDescriptor.prototype.js = '';
-
-/**
- * @type {Object.<string, {finished: boolean, requiredInputs: Array.<string>, depends: Array.<string>}>}
+ * @type {Object.<Operation>}
  * @private
  */
 mide.core.ComponentDescriptor.prototype.operations = null;
 
 /**
- * @type {Object.<string, {depends: Array.<string>}>}
+ * @type {Object.<Event>}
  * @private
  */
 mide.core.ComponentDescriptor.prototype.events = null;
 
 /**
- * @type {Object.<string, string>}
- * @private
- */
-mide.core.ComponentDescriptor.prototype.calls = null;
-
-
-/**
- * @type {Object.<string, Object>}
+ * @type {Object.<Paramter>}
  * @private
  */
 mide.core.ComponentDescriptor.prototype.parameters = null;
+
+/**
+ * The name of the operation which should be run when the component
+ * finished loading.
+ * 
+ * @type {string}
+ * @private
+ */
+mide.core.ComponentDescriptor.prototype.autorun = '';
+
+
+mide.core.ComponentDescriptor.prototype.setProcessorManager = function(m) {
+	this.processorManager = m;
+};
 
 
 /**
@@ -76,30 +79,16 @@ mide.core.ComponentDescriptor.prototype.parameters = null;
  * @param {string} xml the XML configuration to create the component from
  * @public
  */
-mide.core.ComponentDescriptor.prototype.setXml = function(xml) {
-	this.xml = xml;
-	
-	var config = mide.parser.parse(xml).component[0];
-	
-	this.name = config.name;
-	this.autorun = config.autorun;
-	this.id = config.id;	
-	
-	this.operations = {};
-	this.events = {};
-	this.calls = {};
-	this.configureOperations(config.operation || []);
-	this.configureEvents(config.event || []);
-	this.configureCalls(config.call || []);
-	this.parameters = config.configuration[0].input || [];
+mide.core.ComponentDescriptor.prototype.setModel = function(model) {
+	this.model = model;
 };
 
 /**
- * @return {string} containing XML
+ * @return {Object|string}
  * @public
  */
-mide.core.ComponentDescriptor.prototype.getXml = function() {
-	return this.xml;
+mide.core.ComponentDescriptor.prototype.getModel = function() {
+	return this.model;
 };
 
 /**
@@ -108,16 +97,16 @@ mide.core.ComponentDescriptor.prototype.getXml = function() {
  * @param {string} js the implementation
  * @public
  */
-mide.core.ComponentDescriptor.prototype.setJs = function(js) {
-	this.js = js;
+mide.core.ComponentDescriptor.prototype.setImplementation = function(implementation) {
+	this.implementation = implementation;
 };
 
 /**
- * @return {string} containing JavaScript
+ * @return {string}
  * @public
  */
-mide.core.ComponentDescriptor.prototype.getJs = function() {
-	return this.js;
+mide.core.ComponentDescriptor.prototype.getImplementation = function() {
+	return this.implementation;
 };
 
 /**
@@ -136,12 +125,68 @@ mide.core.ComponentDescriptor.prototype.setId = function(id) {
 
 
 /**
- * Returns the descriptive name as provided in the model file.
- * 
- * @return {string}
+ * @return {Object} a map of mide.core.Operation 
  */
-mide.core.ComponentDescriptor.prototype.getName = function() {
-	return this.name;
+mide.core.ComponentDescriptor.prototype.getOperations = function() {
+	return this.operations;
+};
+
+/**
+ * @return {Object} a map of mide.core.Event
+ */
+mide.core.ComponentDescriptor.prototype.getEvents = function() {
+	return this.events;
+};
+
+/**
+ * @return {Object} a map of mide.core.Parameter
+ */
+mide.core.ComponentDescriptor.prototype.getParameters = function() {
+	return this.parameters;
+};
+
+/**
+ * @param {Object} a map of mide.core.Operation
+ */
+mide.core.ComponentDescriptor.prototype.setOperations = function(operations) {
+	this.operations = operations;
+};
+
+/**
+ * @param {Object} a map of mide.core.Event 
+ */
+mide.core.ComponentDescriptor.prototype.setEvents = function(events) {
+	this.events = events;
+};
+
+/**
+ * @param {Object} a map of mide.core.Parameter 
+ */
+mide.core.ComponentDescriptor.prototype.setParameters = function(parameters) {
+	this.parameters = parameters;
+};
+
+/**
+ * @param {Object}
+ */
+mide.core.ComponentDescriptor.prototype.setData = function(data, value) {
+	if(arguments.length == 2) {
+		var d = this.data || (this.data = {});
+		d[data] = value;
+	}
+	else {
+		this.data = data;
+	}
+};
+
+/**
+ * @param {Object} a map of mide.core.Parameter 
+ */
+mide.core.ComponentDescriptor.prototype.getData = function(key) {
+	if(goog.isString(key)) {
+		return this.data[key];
+	}
+	return this.data;
 };
 
 
@@ -159,106 +204,10 @@ mide.core.ComponentDescriptor.prototype.getName = function() {
 mide.core.ComponentDescriptor.prototype.getInstance = function(opt_instanceId, opt_config) {
 	var instance = new mide.core.Component(this, opt_instanceId, opt_config);
 	
-	var f = new Function("exports", this.js);
+	var f = new Function("exports", this.implementation);
 	f(instance);
-	
+	if(this.processorManager) {
+		instance.setDataProcessors(this.processorManager.getProcessorsFor(this.id));
+	}
 	return instance;
 };
-
-
-/**
- * Sets up the meta data to handle operations.
- * 
- * 
- * @param {Array} operations
- * @private
- */
-mide.core.ComponentDescriptor.prototype.configureOperations = function(operations) {
-	var i, j, op,       // loop variables
-		required, inputs;
-		
-	
-	for(i = operations.length; i--; ) {
-		op = operations[i];
-		required = [];
-		inputs = op.input || [];
-		for(j = inputs.length; j--; ) {
-			if(inputs[j].required && inputs[j].required === 'true') {
-				required.push(inputs[j].name);
-			}
-		}
-	
-		this.operations[op.ref] = {
-			finished: false,
-			async: (op.async && op.async === 'true'),
-			requiredInputs: required,
-			depends: (op.dependsOn ? op.dependsOn.split(/\s*,\s*/) : [])
-		};
-		
-		// if the operation generates output, an event with the same name will be created
-		if(op.output) {
-			this.configureEvent({ref: op.ref + "Output"});
-		}
-	}
-};
-
-/**
- * 
- */
-mide.core.ComponentDescriptor.prototype.getOperations = function() {
-	return this.operations;
-};
-
-mide.core.ComponentDescriptor.prototype.getEvents = function() {
-	return this.events;
-};
-
-mide.core.ComponentDescriptor.prototype.getParameters = function() {
-	return this.parameters;
-};
-
-/**
- * Sets up the meta data to handle calls.
- * 
- * @param {Array} event
- * @private
- */
-mide.core.ComponentDescriptor.prototype.configureCalls = function(calls) {
-	var i, name;
-
-	for(i = calls.length; i--; ) {
-		name = calls[i].ref;
-		this.calls[name] = true;
-		if(calls[i].output) {
-			this.configureEvent({ref: name});
-		}
-	}
-};
-
-
-/**
- * Sets up the meta data to handle events.
- * 
- * @param {Array} event
- * @private
- */
-mide.core.ComponentDescriptor.prototype.configureEvents = function(events) {
-	var i;
-		
-	for(i = events.length; i--; ) {
-		this.configureEvent(events[i]);
-	}
-};
-
-/**
- * Sets up the meta data to handle event.
- * 
- * @param {Object} event
- * @private
- */
-mide.core.ComponentDescriptor.prototype.configureEvent = function(ev) {
-	this.events[ev.ref] = {
-		depends: (ev.dependsOn ? goog.array.map(ev.dependsOn.split(','), goog.string.trim) : [])
-	};
-};
-

@@ -106,7 +106,8 @@ mide.ui.input.BaseInput.prototype.render = function(container) {
 	);
 	var internal = this.renderInternal_();
 	if(internal) {
-		goog.dom.append(elem, this.label, internal);
+		
+		goog.dom.append(elem, this.label, goog.dom.createElement('br'), internal);
 	}
 	if(!container) {
 		return elem;
@@ -150,6 +151,13 @@ mide.ui.input.BaseInput.prototype.getValue = function() {
  * @public
  */
 mide.ui.input.BaseInput.prototype.setValue = function(value) {
+};
+
+/**
+ * @public
+ */
+mide.ui.input.BaseInput.prototype.getName = function() {
+	return this.name;
 };
 
 /**

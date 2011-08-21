@@ -1,9 +1,6 @@
 goog.provide('mide.core.Session');
 goog.provide('mide.config.session');
 
-goog.require('mide.Canvas');
-goog.require('mide.ServiceCallConverter');
-
 goog.require('goog.ui.IdGenerator');
 goog.require('goog.object');
 
@@ -121,20 +118,5 @@ mide.core.Session.prototype.getComponent = function(id, cb) {
 		cb(instance);
 	});
 };
-
-mide.core.Session.mapping = {
-			'GetResearcher': {
-				'researchers': {url: 'http://dev.liquidjournal.org:8081/resevalmash-api/resources/italianSource/getResearchers', 
-					overwriteResult: true
-				}
-			},
-			'MASSource': {
-				'setResearchers': {url: 'http://dev.liquidjournal.org:8081/resevalmash-api/resources/masSource/setResearchers', 
-					overwriteResult: true,
-					passthrough: true
-				}
-			}
-};
-
 
 

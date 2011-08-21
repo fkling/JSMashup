@@ -19,7 +19,7 @@ mide.ui.input.Autocomplete = function(name, label, opt_options) {
 	this.lastDisplay_ = '';
 	this.lastValue_ = '';
 	this.data = [];
-	mide.ui.input.BaseInput.call(this, options, events, opt_domHelper);
+	mide.ui.input.BaseInput.call(this, name, label, opt_options);
 };
 
 goog.inherits(mide.ui.input.Autocomplete, mide.ui.input.BaseInput);
@@ -29,9 +29,9 @@ mide.ui.input.Autocomplete.Events = mide.ui.input.BaseInput.Events;
  * @override
  */
 mide.ui.input.Autocomplete.prototype.renderInternal_ = function() {
-	if(this.inputElement_) {
+	if(!this.inputElement_) {
 		this.inputElement_ = this.dom_.createDom('input', {
-			name : this.options.get('name')
+			name : this.name
 		});
 		var valueMapper = this.options.get('valueMapper'), 
 			self = this;
