@@ -14,23 +14,6 @@ goog.provide('mide.config.registry');
 mide.config.registry = {
 	type: null,
 	options: {}
-}
-
-
-/**
- * Get current registry instance
- * 
- * @public
- */
-mide.core.registry.getInstance = function() {
-	if(!mide.config.registry.type) {
-		return null;
-	}
-	
-	if(!mide.core.registry.instance) {
-		mide.core.registry.instance = new mide.config.registry.type(mide.config.registry.options);
-	}
-	return mide.core.registry.instance;
 };
 
 
@@ -43,6 +26,9 @@ mide.core.registry.getInstance = function() {
  */
 mide.core.registry.BaseRegistry = function(options) {
 	this.options = options || {};
+	if(options.composition_mapper) {
+		options.composition_mapper.setRegistry(this);
+	}
 };
 
 
@@ -112,7 +98,7 @@ mide.core.registry.BaseRegistry.prototype.getComponentDescriptorByUrl = function
  */
 mide.core.registry.BaseRegistry.prototype.getDescriptor_ = function(id, model, implementation, data) {
 	try {
-		return this.options.converter.getDescriptor(id, model, implementation, data);
+		return this.options.component_mapper.getDescriptor(id, model, implementation, data);
 	}
 	catch(e) {
 		console.log(e);
@@ -146,5 +132,65 @@ mide.core.registry.BaseRegistry.prototype.saveComponent = function(componentDesc
  * @public
  */
 mide.core.registry.BaseRegistry.prototype.deleteComponent = function(componentDescriptor, success, error) {
+	
+};
+
+
+/**
+ * Get a list of all users compositions
+ * 
+ * @param {function(Array.<{id: string, data: Object}>)} success callback
+ * @param {function(string)} error callback
+ * @public
+ */
+mide.core.registry.BaseRegistry.prototype.getCompositions = function(success, error) {
+	
+};
+
+
+/**
+ * Get a list of all users compositions
+ * 
+ * @param {function(Array.<{id: string, data: Object}>)} success callback
+ * @param {function(string)} error callback
+ * @public
+ */
+mide.core.registry.BaseRegistry.prototype.getUserCompositions = function(success, error) {
+	
+};
+
+
+/**
+ * Get a list of all users compositions
+ * 
+ * @param {function(Array.<{id: string, data: Object}>)} success callback
+ * @param {function(string)} error callback
+ * @public
+ */
+mide.core.registry.BaseRegistry.prototype.createComposition = function(model, data, success, error) {
+	
+};
+
+
+/**
+ * Get a list of all users compositions
+ * 
+ * @param {function(Array.<{id: string, data: Object}>)} success callback
+ * @param {function(string)} error callback
+ * @public
+ */
+mide.core.registry.BaseRegistry.prototype.saveComposition = function(id, model, data, success, error) {
+	
+};
+
+
+/**
+ * Get a list of all users compositions
+ * 
+ * @param {function(Array.<{id: string, data: Object}>)} success callback
+ * @param {function(string)} error callback
+ * @public
+ */
+mide.core.registry.BaseRegistry.prototype.deleteComposition = function(id, success, error) {
 	
 };

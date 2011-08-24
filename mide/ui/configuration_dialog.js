@@ -46,7 +46,7 @@ mide.ui.ConfigurationDialog = function(parameters) {
 		// listen for the change event
 		goog.events.listen(this.fields[parameter.getRef()], mide.ui.input.BaseInput.Events.CHANGE, function(event) {
 			this.dispatchEvent({type: mide.ui.input.BaseInput.Events.CHANGE});
-			var rdeps = this.dependencies[event.target.getName()];
+			var rdeps = this.dependencies[event.target.getName()] || [];
 			for(var i = rdeps.length; i--; ) {
 				this.fields[rdeps[i]].update();
 			}

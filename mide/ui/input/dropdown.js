@@ -51,7 +51,7 @@ mide.ui.input.Dropdown.prototype.update = function() {
 					var value = goog.getObjectByName(valueMapper, datum),
 						display = goog.getObjectByName(displayMapper, datum),
 					    option = goog.dom.createDom('option', {value: value}, goog.dom.createTextNode(display));
-					if(value == this.lastValue_) {
+					if(value == self.lastValue_) {
 						option.setAttribute('selected', 'selected');
 					}			
 					goog.dom.append(self.inputElement_, option);
@@ -73,7 +73,7 @@ mide.ui.input.Dropdown.prototype.update = function() {
 mide.ui.input.Dropdown.prototype.getValue = function() {
 	return {
 		value: this.inputElement_.value, 
-		display: this.inputElement_.options[this.inputElement_.selectedIndex]
+		display: this.inputElement_.options[this.inputElement_.selectedIndex].innerHTML || ''
 	};
 };
 

@@ -208,7 +208,7 @@ mide.core.Component.prototype.triggerEvent = function(name, params) {
 				converters.shift().triggerEvent(name, data, next);
 			}
 			else {
-				self.triggerEventInternal(event, data);
+				self.triggerEventInternal(name, data);
 			}
 		};
 		next(params);
@@ -235,7 +235,7 @@ mide.core.Component.prototype.triggerEventInternal = function(name, params) {
  * @return {Object.<string, {value: string, display: string}} the configuration 
  */
 mide.core.Component.prototype.getConfiguration = function() {
-	return this.configuration_dialog.getConfiguration();
+	return this.configurationDialog.getConfiguration();
 };
 
 /**
@@ -245,7 +245,7 @@ mide.core.Component.prototype.getConfiguration = function() {
  * @param {Object.<string, {value: string, display: string}} config
  */
 mide.core.Component.prototype.setConfiguration = function(config) {
-	return this.configuration_dialog.setConfiguration(config);
+	return this.configurationDialog.setConfiguration(config);
 };
 
 

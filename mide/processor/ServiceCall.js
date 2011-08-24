@@ -24,7 +24,7 @@ org.reseval.processor.ServiceCall.prototype.perform = function(operation, params
 		this.data[operation].cacheKey = controlData.cacheKey;
 	}
 	else {
-		this.data[operation].cacheKey = mide.core.Session.getInstance().getId() + this.component.getId();
+		this.data[operation].cacheKey = 1234;// mide.core.Session.getInstance().getId() + this.component.getId();
 	}
 	
 	if(config && config.url) {
@@ -63,7 +63,7 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, url, ge
 	
 	if(config && config.url) {
 		this.data[name] = {};
-		this.data[name].cacheKey =  mide.core.Session.getInstance().getId() + this.component.getId();
+		this.data[name].cacheKey =  1234; //mide.core.Session.getInstance().getId() + this.component.getId();
 		
 		url = config.url;
 		getParams.key = this.data[name].cacheKey;
@@ -74,11 +74,12 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, url, ge
 };
 
 org.reseval.processor.ServiceCall.prototype.makeResponse = function(name, response) {
-		this.output.innerHTML = JSON.stringify(response);
+		this.output.innerHTML = response;
+		response = JSON.parse(response);
 		this.data[name].cacheKey = response.cacheKey;
 		this.data[name].dataObject = response.dataObject;
 		
-		return response.dataObject;
+		return JSON.stringify(response.dataObject);
 };
 
 org.reseval.processor.ServiceCall.prototype.getContentNode = function() {

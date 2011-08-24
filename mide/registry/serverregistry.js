@@ -5,6 +5,7 @@ goog.require('mide.core.net');
 
 goog.require('goog.array');
 goog.require('goog.object');
+goog.require('goog.json');
 goog.require('goog.uri.utils');
 
 /**
@@ -19,15 +20,50 @@ mide.core.registry.ServerRegistry = function(options) {
 	this.base_url = options.base_url || '';
 	this.user_id = options.user_id  || '';
 	
-	this.components_url = this.base_url + '/components';
+	this.components_url = this.base_url + '/components/';
+	this.compositions_url = this.base_url + '/compositions/';
 	
-	this.userComponents_url = options.user_url || [this.base_url, this.user_id, 'components'].join('/');
+	this.userComponents_url = options.userComponents_url || [this.base_url, this.user_id, 'components'].join('/');
+	this.userCompositions_url = options.userCompositions_url || [this.base_url, this.user_id, 'compositions'].join('/');
 	
 	/**
 	 * @type {Object}
 	 * @private
 	 */
 	this.componentDescriptors_ = {};
+	
+	/**
+	 * @type {Object}
+	 * @private
+	 */
+	this.compositions = {};
+	
+	
+	/**
+	 * @type {boolean}
+	 * @private
+	 */
+	this.compositionsLoaded = false;
+	
+	
+	/**
+	 * @type {boolean}
+	 * @private
+	 */
+	this.componentsLoaded = false;
+	
+	/**
+	 * @type {Array}
+	 * @private
+	 */
+	this.compositionsArray_ = [];
+	
+	/**
+	 * @type {Array}
+	 * @private
+	 */
+	this.userCompositionsArray_ = [];
+	
 	
 	/**
 	 * @type {Array}
@@ -75,13 +111,6 @@ mide.core.registry.ServerRegistry.prototype.load = function(options, success, er
 	else {
 		success(this);
 	}
-};
-
-/**
- * @overwrite
- */
-mide.core.registry.ServerRegistry.prototype.configure = function(config, success, error) {
-	//TODO: Implement configuration file parsing
 };
 
 
@@ -148,7 +177,7 @@ mide.core.registry.ServerRegistry.prototype.getComponentDescriptorById = functio
 					error(xhr.getResponseText());
 				}
 			  });			
-			xhr.send(self.components_url + '/' + id, 'GET');
+			xhr.send(self.components_url + id, 'GET');
 		});
 	}
 };
@@ -170,7 +199,7 @@ mide.core.registry.ServerRegistry.prototype.saveComponent = function(id, model, 
 	 
 	if(id) {
 		mide.core.net.makeRequest({
-			url:  self.components_url + '/' + id,
+			url:  self.components_url + id,
 			method: 'PUT',
 			data: {
 				id: descr.getId(),
@@ -198,7 +227,7 @@ mide.core.registry.ServerRegistry.prototype.deleteComponent = function(id, succe
 	 
 	if(id) {
 		mide.core.net.makeRequest({
-			url: self.components_url + '/' + id,
+			url: self.components_url + id,
 			method: 'DELETE',
 			success: function() {
 				delete self.componentDescriptors_[id];
@@ -227,9 +256,125 @@ mide.core.registry.ServerRegistry.prototype.loadComponents_ = function(url, targ
 	});
 };
 
-mide.core.registry.ServerRegistry.getInstance = function() {
-	if(!mide.core.registry.ServerRegistry.instance) {
-		mide.core.registry.ServerRegistry.instance = new mide.core.registry.ServerRegistry();
+
+mide.core.registry.ServerRegistry.prototype.getCompositions = function(success, error) {
+	var self = this;
+	if(this.compositionsArray_.length == 0) {
+		this.loadCompositions_(this.compositions_url, this.compositionsArray_, function(){
+			success(self.compositionsArray_.slice());
+		}, function(){
+			if(error) error("Components couldn't be loaded.")
+		});
 	}
-	return mide.core.registry.ServerRegistry.instance;
+	else {
+		success(this.compositionsArray_.slice());
+	}
+};
+
+
+mide.core.registry.ServerRegistry.prototype.getUserCompositions = function(success, error) {
+	var self = this;
+	if(this.userCompositionsArray_.length == 0) {
+		this.loadCompositions_(this.userCompositions_url, this.userCompositionsArray_, function(){
+			success(self.userCompositionsArray_.slice());
+		}, function(){
+			if(error) error("Components couldn't be loaded.")
+		});
+	}
+	else {
+		success(this.userCompositionsArray_.slice());
+	}
+};
+
+mide.core.registry.ServerRegistry.prototype.getComposition = function(id, success, error) {
+	var self = this;
+	if(self.compositions[id]) {
+		success(self.compositions[id]);
+		return;
+	}
+	mide.core.net.makeRequest({
+		url: this.compositions_url + id,
+		method: 'GET',
+		success: function(text, e) {
+			var c = e.target.getResponseJson();
+			self.options.composition_mapper.getComposition(id, c.model, c.data, function(composition) {
+				self.compositions[id] = composition;
+				success(composition);
+			});
+		},
+		error: error
+	});
+};
+
+
+mide.core.registry.ServerRegistry.prototype.createComposition = function(model, data, success, error) {
+    var self = this;
+	mide.core.net.makeRequest({
+		url: this.compositions_url,
+		method: 'POST',
+		data: {model: model, data: goog.json.serialize(data)},
+		complete: function(id, e) {
+			if(e.target.getStatus() === 201) {
+				self.options.composition_mapper.getComposition(id, model, data, function(composition) {
+					self.compositions[id] = composition;
+					self.userCompositionsArray_ = [];
+					success(id);
+				});
+			}
+			else {
+				error: error
+			}
+			
+		}
+	});
+};
+
+
+mide.core.registry.ServerRegistry.prototype.saveComposition = function(id, model, data, success, error) {
+	var self = this;
+	mide.core.net.makeRequest({
+		url: this.compositions_url + id,
+		method: 'PUT',
+		data: {model: model, data: goog.json.serialize(data)},
+		success: function(text, e) {
+			self.options.composition_mapper.getComposition(id, model, data, function(composition) {
+				self.compositions[id] = composition;
+				self.userCompositionsArray_ = [];
+				success(id);
+			});
+		},
+		error: error
+	});
+};
+
+
+mide.core.registry.ServerRegistry.prototype.deleteComposition = function(id, success, error) {
+	var self = this;
+	mide.core.net.makeRequest({
+		url: this.compositions_url + id,
+		method: 'DELETE',
+		success: function(text, e) {
+			delete self.compositions[id];
+			success('Component with id ' + id + ' was delted successfully');
+		},
+		error: error
+	});
+};
+
+/**
+ * @private
+ */
+mide.core.registry.ServerRegistry.prototype.loadCompositions_ = function(url, target, success, error) {
+	var self = this;
+	
+	mide.core.net.makeRequest({
+		url: url,
+		success: function(txt, e) {
+			var compositions = e.target.getResponseJson();
+			goog.array.sortObjectsByKey(compositions, 'name');
+			goog.array.extend(target, compositions);
+			success();
+		},
+		error: error
+	});
 };

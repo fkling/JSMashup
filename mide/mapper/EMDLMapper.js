@@ -1,19 +1,19 @@
-goog.provide('mide.converter.EMDLConverter');
+goog.provide('mide.mapper.EMDLMapper');
 
-goog.require('mide.converter.ModelConverter');
+goog.require('mide.mapper.ComponentMapper');
 goog.require('mide.parser')
 
 /**
  * Converter for Extended Mashart Definition Language
  * 
- * @implements mide.converter.ModelConverter
+ * @implements mide.mapper.ComponentMapper
  */
-mide.converter.EMDLConverter = function() {};
+mide.mapper.EMDLMapper = function() {};
 
 /**
  * @override
  */
-mide.converter.EMDLConverter.prototype.getDescriptor = function(id, model, implementation, data) {
+mide.mapper.EMDLMapper.prototype.getDescriptor = function(id, model, implementation, data) {
 	var events = [],
 		operations = [],
 		parameters = [];
@@ -40,7 +40,7 @@ mide.converter.EMDLConverter.prototype.getDescriptor = function(id, model, imple
 /**
  * @private
  */
-mide.converter.EMDLConverter.prototype.getOperations = function(root) {
+mide.mapper.EMDLMapper.prototype.getOperations = function(root) {
 	var operations = [];
 	var ops, op, operation, inputs, outputs;
 	
@@ -63,7 +63,7 @@ mide.converter.EMDLConverter.prototype.getOperations = function(root) {
 /**
  * @private
  */
-mide.converter.EMDLConverter.prototype.getEvents = function(root) {
+mide.mapper.EMDLMapper.prototype.getEvents = function(root) {
 	var events = [];
 	var evs, ev, event, outputs;
 	
@@ -83,7 +83,7 @@ mide.converter.EMDLConverter.prototype.getEvents = function(root) {
 /**
  * @private
  */
-mide.converter.EMDLConverter.prototype.getParameters = function(root) {
+mide.mapper.EMDLMapper.prototype.getParameters = function(root) {
 	var parameters = [];
 	var paras = [], para, parameter;
 	
@@ -107,7 +107,7 @@ mide.converter.EMDLConverter.prototype.getParameters = function(root) {
 	return parameters;
 };
 
-mide.converter.EMDLConverter.prototype.parseOptions = function(options) {
+mide.mapper.EMDLMapper.prototype.parseOptions = function(options) {
 	var obj = {};
 	for(var i = 0, l = options.length; i < l; i++) {
 		var option = options[i];
@@ -121,6 +121,6 @@ mide.converter.EMDLConverter.prototype.parseOptions = function(options) {
 /**
  * @private
  */
-mide.converter.EMDLConverter.prototype.parseXML = function(xml) {
+mide.mapper.EMDLMapper.prototype.parseXML = function(xml) {
 	return mide.parser.parse(xml);
 };

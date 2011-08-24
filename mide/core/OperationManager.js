@@ -123,7 +123,7 @@ mide.core.OperationManager.prototype.hasUnresolvedDependencies = function(operat
  * 
  * @public
  */
-mide.core.OperationManager.prototype.markAsResolved = function(operation) {
+mide.core.OperationManager.prototype.resolve = function(operation) {
 	this.operationFinished[operation] = true;
 };
 
