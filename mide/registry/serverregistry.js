@@ -84,39 +84,6 @@ goog.inherits(mide.core.registry.ServerRegistry, mide.core.registry.BaseRegistry
 /**
  * @overwrite
  */
-mide.core.registry.ServerRegistry.prototype.load = function(options, success, error) {
-	goog.object.extend(this.options, options || {});
-	
-	var self = this;
-	
-	this.base_url = this.options.base_url || '';
-	this.components_url = this.base_url + '/components';
-	
-	if(this.options.user_id) {
-		this.userComponents_url = [this.base_url, this.options.user_id, 'components'].join('/');
-	}
-	
-	if(this.options.config_url) {
-		mide.core.net.makeRequest({
-			url: this.options.config_url,
-			success: function(txt, event) {
-				self.configure(event.target.getResponseText());
-				success(self);
-			},
-			error: function(event) {
-				error("Registry could not load successfully:" + event.target.getLastError());
-			}
-		});
-	}
-	else {
-		success(this);
-	}
-};
-
-
-/**
- * @overwrite
- */
 mide.core.registry.ServerRegistry.prototype.getComponents = function(success, error) {
 	var self = this;
 	if(this.componentsArray_.length == 0) {
@@ -208,10 +175,9 @@ mide.core.registry.ServerRegistry.prototype.saveComponent = function(id, model, 
 				data: JSON.stringify(descr.getData())
 			},
 			success: function() {
-				//if(!(id in self.componentDescriptors_)) {
 					self.componentDescriptors_[id] = descr;
-					//self.componentsArray_.push(descr);
-				//}
+					self.componentsArray_ = [];
+					self.userComponentsArray_ = [];
 				success(descr);
 			},
 			error: error
@@ -231,6 +197,8 @@ mide.core.registry.ServerRegistry.prototype.deleteComponent = function(id, succe
 			method: 'DELETE',
 			success: function() {
 				delete self.componentDescriptors_[id];
+				self.componentsArray_ = [];
+				self.userComponentsArray_ = [];
 				success('Component with id ' + id + ' was delted successfully');
 			},
 			error: error
@@ -289,7 +257,9 @@ mide.core.registry.ServerRegistry.prototype.getUserCompositions = function(succe
 mide.core.registry.ServerRegistry.prototype.getComposition = function(id, success, error) {
 	var self = this;
 	if(self.compositions[id]) {
-		success(self.compositions[id]);
+		this.options.composition_mapper.getComposition(id, self.compositions[id].model, self.compositions[id].data, function(composition) {
+			success(composition);
+		});
 		return;
 	}
 	mide.core.net.makeRequest({
@@ -298,7 +268,7 @@ mide.core.registry.ServerRegistry.prototype.getComposition = function(id, succes
 		success: function(text, e) {
 			var c = e.target.getResponseJson();
 			self.options.composition_mapper.getComposition(id, c.model, c.data, function(composition) {
-				self.compositions[id] = composition;
+				self.compositions[id] = c;
 				success(composition);
 			});
 		},
@@ -316,8 +286,9 @@ mide.core.registry.ServerRegistry.prototype.createComposition = function(model, 
 		complete: function(id, e) {
 			if(e.target.getStatus() === 201) {
 				self.options.composition_mapper.getComposition(id, model, data, function(composition) {
-					self.compositions[id] = composition;
+					self.compositions[id] = {id: id, model: model, data: data};
 					self.userCompositionsArray_ = [];
+					self.compositionsArray_ = [];
 					success(id);
 				});
 			}
@@ -338,8 +309,9 @@ mide.core.registry.ServerRegistry.prototype.saveComposition = function(id, model
 		data: {model: model, data: goog.json.serialize(data)},
 		success: function(text, e) {
 			self.options.composition_mapper.getComposition(id, model, data, function(composition) {
-				self.compositions[id] = composition;
+				self.compositions[id] = {id: id, model: model, data: data};
 				self.userCompositionsArray_ = [];
+				self.compositionsArray_ = [];
 				success(id);
 			});
 		},
@@ -355,6 +327,8 @@ mide.core.registry.ServerRegistry.prototype.deleteComposition = function(id, suc
 		method: 'DELETE',
 		success: function(text, e) {
 			delete self.compositions[id];
+			self.userCompositionsArray_ = [];
+			self.compositionsArray_ = [];
 			success('Component with id ' + id + ' was delted successfully');
 		},
 		error: error
