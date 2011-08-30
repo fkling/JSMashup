@@ -56,6 +56,13 @@ mide.ui.input.Autocomplete.prototype.renderInternal_ = function() {
 			      type: mide.ui.input.BaseInput.Events.CHANGE
 			});
 		}, false, this);
+		
+		goog.events.listen(this.inputElement_, 'change', function(e) {
+			this.lastDisplay_ = e.target.value;
+			this.dispatchEvent({
+			      type: mide.ui.input.BaseInput.Events.CHANGE
+			});
+		}, false, this);
 	
 		inputhandler.attachAutoComplete(ac);
 		inputhandler.attachInputs(this.inputElement_);
