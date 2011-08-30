@@ -2,12 +2,13 @@ goog.provide('mide.core.OperationManager');
 
 goog.require('goog.array');
 
-mide.core.OperationManager = function(operations) {
+mide.core.OperationManager = function(component, operations) {
 	this.dependenciesMap = {};
 	this.operations = {};
 	this.lastValue = {};
 	this.operationFinished = {};
 	this.history = [];
+	this.component = component;
 	
 	
 	for(var i = operations.length;i--;) {
@@ -15,6 +16,9 @@ mide.core.OperationManager = function(operations) {
 			ref = operation.getRef();
 		this.operations[ref] = operation;
 		
+		// Creates a dependency map. Each entry consists of two arrays:
+		// The first array contains the names, the entry depends on
+		// The second array contains the names, the entry is an dependency of (reverse dependency)
 		var depsMap = this.dependenciesMap[ref] || (this.dependenciesMap[ref] = [[], []]);
 		var dependencies = operation.getDependencies()
 		for(var j = dependencies.length; j--;) {
@@ -23,9 +27,11 @@ mide.core.OperationManager = function(operations) {
 			if(!this.dependenciesMap[dep_ref]) {
 				this.dependenciesMap[dep_ref] = [[],[]];
 			}
-			this.dependenciesMap[dep_ref][1].push(x);		
+			this.dependenciesMap[dep_ref][1].push(ref);		
 		}
 	}
+	
+	this.dependencyQueue_ = [];
 };
 
 
@@ -125,6 +131,31 @@ mide.core.OperationManager.prototype.hasUnresolvedDependencies = function(operat
  */
 mide.core.OperationManager.prototype.resolve = function(operation) {
 	this.operationFinished[operation] = true;
+	delete this.lastValue[operation];
+	
+	// resolve dependencies
+	var reverse_deps = this.dependenciesMap[operation] && this.dependenciesMap[operation][1] || [];
+	for(var i = reverse_deps.length; i--; ) {
+		if(!goog.array.contains(this.dependencyQueue_, reverse_deps[i])) {
+			this.dependencyQueue_.push(reverse_deps[i]);
+		}
+	}
+	this.resolveDependencyQueue_();
+};
+
+/**
+ * 
+ * @private
+ */
+mide.core.OperationManager.prototype.resolveDependencyQueue_ = function() {
+	// make a async call
+	var self = this;
+	setTimeout(function() {
+		var next_op = self.dependencyQueue_.shift();
+		if(next_op && self.lastValue[next_op]) {
+			self.component.perform(next_op, self.lastValue[next_op] || {});
+		}
+	}, 0)
 };
 
 

@@ -24,6 +24,7 @@ mide.core.Component = function(componentDescriptor, opt_id, opt_config, opt_domH
 	this.dataProcessors = [];
 	
 	this.operationManager = new mide.core.OperationManager(this.descriptor.getOperations());
+	this.operationManager = new mide.core.OperationManager(this, this.descriptor.getOperations());
 
 	
 	this.configurationDialog = new mide.ui.ConfigurationDialog(componentDescriptor.getParameters());
@@ -321,7 +322,7 @@ mide.core.Component.prototype.performInternal = function(operation, params) {
 			// we can mark the operation as finished automatically
 			func = function(params) {
 				old_func.call(this, params);
-				this.operationManager.resolve(operation);
+				this.markOperationAsFinished(operation);
 			};
 		}
 		func.call(this, params);	
@@ -330,6 +331,18 @@ mide.core.Component.prototype.performInternal = function(operation, params) {
 		throw new Error('[Operation call error] Operation {' + operation + '}: Missing parameter(s)');
 	}
 };
+
+
+/**
+ * 
+ * @private
+ */
+mide.core.Component.prototype.markOperationAsFinished = function(operation) {
+	delete this.inputBuffer[operation];
+	this.dispatchEvent({type: mide.core.Component.Events.OPEND, component: this, operation: operation});
+	this.operationManager.resolve(operation);
+};
+
 
 
 /**
