@@ -160,6 +160,14 @@ mide.ui.input.BaseInput.prototype.getName = function() {
 	return this.name;
 };
 
+
+/**
+ * @public
+ */
+mide.ui.input.BaseInput.prototype.isEmpty = function() {
+	return this.getValue().value === "";
+};
+
 /**
  * @override
  */
