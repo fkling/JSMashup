@@ -36,6 +36,10 @@ mide.ui.input.Dropdown.prototype.renderInternal_ = function() {
 mide.ui.input.Dropdown.prototype.update = function() {
 	goog.dom.removeChildren(this.inputElement_);
 	goog.dom.append(this.inputElement_, goog.dom.createDom('option', {value: 0}, goog.dom.createTextNode('Updating...')));
+	if(this.options.has('default')) {
+		var option = goog.dom.createDom('option', {value: this.options.get('default').get('value') || ''}, goog.dom.createTextNode(this.options.get('default').get('display') || 'default'));
+		goog.dom.append(this.inputElement_, option);
+	}
 	
 	var self = this;
 	if(this.options.has('url')) {
@@ -45,8 +49,7 @@ mide.ui.input.Dropdown.prototype.update = function() {
 		mide.core.net.makeRequest({
 			url: this.options.get('url'), 
 			responseFormat: 'json',
-			success: function(data) {
-				goog.dom.removeChildren(self.inputElement_);
+			success: function(data) {			
 				goog.array.forEach(data, function(datum){
 					var value = goog.getObjectByName(valueMapper, datum),
 						display = goog.getObjectByName(displayMapper, datum),
@@ -56,7 +59,9 @@ mide.ui.input.Dropdown.prototype.update = function() {
 					}			
 					goog.dom.append(self.inputElement_, option);
 				});
-				
+			},
+			complete: function() {
+				goog.dom.removeNode(goog.dom.getFirstElementChild(self.inputElement_));
 			}
 		});
 	}
@@ -71,9 +76,14 @@ mide.ui.input.Dropdown.prototype.update = function() {
  * @override
  */
 mide.ui.input.Dropdown.prototype.getValue = function() {
+	var value = this.inputElement_.value,
+		display = '';
+	if(this.inputElement_.options.length > 0) {
+		display = this.inputElement_.options[this.inputElement_.selectedIndex].innerHTML;
+	}
 	return {
-		value: this.inputElement_.value, 
-		display: this.inputElement_.options[this.inputElement_.selectedIndex].innerHTML || ''
+		value: value, 
+		display: display
 	};
 };
 
