@@ -186,3 +186,13 @@ mide.core.OperationManager.prototype.purge = function(operation) {
 mide.core.OperationManager.prototype.getOperations = function(){
 		return this.operations;
 };
+
+/**
+ * Prepares the operation manager for a new run
+ * 
+ * @public
+ */
+mide.core.OperationManager.prototype.reset = function(){
+	this.operationFinished = {};
+	this.lastValue = {};
+};

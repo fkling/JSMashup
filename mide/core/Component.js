@@ -13,17 +13,17 @@ goog.require('goog.string');
 goog.require('goog.ui.IdGenerator');
 
 
-mide.core.Component = function(componentDescriptor, opt_id, opt_config, opt_domHelper) {
+mide.core.Component = function(componentDescriptor, composition, opt_id, opt_config, opt_domHelper) {
 	goog.ui.Component.call(this, opt_domHelper);
 	
-	this.id = opt_id || goog.ui.IdGenerator.getInstance().getNextUniqueId();
+	this.id = opt_id;
 	this.descriptor = componentDescriptor;
+	this.composition = composition;
 
 	this.outputBuffer = {};
 	this.inputBuffer = {};
 	this.dataProcessors = [];
 	
-	this.operationManager = new mide.core.OperationManager(this.descriptor.getOperations());
 	this.operationManager = new mide.core.OperationManager(this, this.descriptor.getOperations());
 
 	
@@ -99,20 +99,8 @@ mide.core.Component.prototype.inputBuffer = null;
  */
 mide.core.Component.prototype.dataProcessors = null;
 
-/**
- * Called when operation starts.
- * 
- * @public
- */
-mide.core.Component.prototype.onOperationStart = function(){};
 
-
-/**
- * Called when operation ends.
- * 
- * @public
- */
-mide.core.Component.prototype.onOperationEnd = function(){};
+mide.core.Component.prototype.composition = null;
 
 
 /**
@@ -157,29 +145,32 @@ mide.core.Component.prototype.getDescriptor = function() {
 
 
 /**
- * Tests whether the component can run or that.
- * This is determined by
- * <ol>
- * <li>The component has an autorun method.
- * <li>The component has input data to work with.
- * </ol>
+ * @param {string} id
  * 
- * @return {boolean}
+ * @public
  */
-mide.core.Component.prototype.isRunnable = function() {
-	return this.descriptor.autorun || this.history.getSize() > 0;
+mide.core.Component.prototype.setComposition = function(composition) {
+	this.composition = composition;
+};
+
+/**
+ * @return {string}
+ * 
+ * @public
+ */
+mide.core.Component.prototype.getComposition = function() {
+	return this.composition;
 };
 
 
 /**
- * Runs a component. This will either execute the 
- * autorun method or replay the history
+ * Prepares the component for a new run.
  * 
+ * @public
  */
-mide.core.Component.prototype.run = function() {
-	//TODO: Implement
+mide.core.Component.prototype.reset = function() {
+	this.operationManager.reset();
 };
-
 
 
 /**
@@ -194,7 +185,7 @@ mide.core.Component.prototype.triggerEvent = function(name, params) {
 	if(this.id) {
 		if(this.operationManager.hasOperation(name)) {
 			// operation was performed
-			this.end(name);
+			this.dispatchEvent({type: mide.core.Component.Events.OPEND, component: this, operation: name});
 		}
 		var converters = [],
 			dataProcessors = this.dataProcessors.slice();
@@ -224,9 +215,11 @@ mide.core.Component.prototype.triggerEvent = function(name, params) {
  * @private
  */
 mide.core.Component.prototype.triggerEventInternal = function(name, params) {
-	name = 'output_' + name;
 	this.outputBuffer[name] = params;
-	mide.PubSub.triggerEvent(this, name, params);
+	var self = this;
+	setTimeout(function(){
+		self.dispatchEvent({type: mide.core.Component.Events.EVENT, source: self, event: name, parameters: params});
+	}, 0);
 };
 
 
@@ -262,10 +255,9 @@ mide.core.Component.prototype.setConfiguration = function(config) {
  * @public
  */
 mide.core.Component.prototype.perform = function(operation, params) {
-	operation = operation.replace(/^input_/, '');
 	var op = this.operationManager.getOperation(operation),
 		self = this;
-	if(op) {
+	if(op) {	
 		// cache parameters for later invocation
 		this.inputBuffer[operation] = params;
 		// record operation in history
@@ -288,7 +280,7 @@ mide.core.Component.prototype.perform = function(operation, params) {
 					self.performInternal(operation, data);
 				}
 			};
-			this.start(operation);
+			this.dispatchEvent({type: mide.core.Component.Events.OPSTART, component: this, operation: operation});
 			next(params);
 		}
 	}
@@ -313,8 +305,8 @@ mide.core.Component.prototype.performInternal = function(operation, params) {
 	if(op.isInputValid(params)) {
 		var self = this;
 		func = this['op_' + operation] || function(){
-			if (operation+"Output" in self.events) {
-				self.triggerEvent(operation, {});
+			if (op.getOutputs().length > 0) {
+				self.triggerEvent(operation, params);
 			}
 		};
 		if(!op.isAsync()) {
@@ -363,7 +355,7 @@ mide.core.Component.prototype.markOperationAsFinished = function(operation) {
  */
 
 mide.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb) {
-	this.start(name);
+	this.dispatchEvent({type: mide.core.Component.Events.OPSTART, component: this, operation: name});
 	var self = this;
 	//TODO Update to new net interface
 	var convertersRequest = [],
@@ -396,31 +388,6 @@ mide.core.Component.prototype.makeRequest = function(name, url, getData, postDat
 	next(name, url, getData, postData);
 };
 
-/**
- * Mark the start of an operation/request/event.
- * 
- * @param {string} operation
- * 
- * @private
- */
-mide.core.Component.prototype.start = function(operation) {
-    this.dispatchEvent({type: mide.core.Component.Events.OPSTART, operation: operation});
-    this.onOperationStart(operation);
-};
-
-/**
- * Mark the end of an operation/request/event.
- * 
- * @param {string} operation
- * 
- * @private
- */
-mide.core.Component.prototype.end = function(operation) {
-	this.dispatchEvent({type: mide.core.Component.Events.OPEND, operation: operation});
-	this.onOperationEnd(operation);
-};
-
-
 
 /**
  * Connects two components. {@code operation} on {@code target} will
@@ -432,12 +399,16 @@ mide.core.Component.prototype.end = function(operation) {
  */
 mide.core.Component.prototype.connect = function(src, event, target, operation) {
 	if(src === this) {
-		mide.PubSub.connect(this, event, target, operation);
-		if(this.outputBuffer[event]) {
-			mide.PubSub.triggerEvent(this, event, this.outputBuffer[event]);
-		}
+		this.dispatchEvent({
+			type: mide.core.Component.Events.CONNECT, 
+			source: this.getId(), 
+			event: event.replace(/^output_/, ''), 
+			target: target, 
+			operation: operation.replace(/^input_/, '')
+		});
 	}
 };
+
 
 /**
  * Disconnects two components.
@@ -448,15 +419,15 @@ mide.core.Component.prototype.connect = function(src, event, target, operation) 
  */
 mide.core.Component.prototype.disconnect = function(src, event, target, operation) {
 	if(src === this) {
-		mide.PubSub.disconnect(this, event, target, operation);
-	}
-	else {
-		operation = operation.replace(/^input_/, '');
-		this.operationManager.purge(operation);
-		delete this.inputBuffer[operation];
+		this.dispatchEvent({
+			type: mide.core.Component.Events.DISCONNECT, 
+			source: this.getId(), 
+			event: event.replace(/^output_/, ''), 
+			target: target, 
+			operation: operation.replace(/^input_/, '')
+		});
 	}
 };
-
 
 
 /**
@@ -467,18 +438,24 @@ mide.core.Component.prototype.disconnect = function(src, event, target, operatio
  * @private
  */
 mide.core.Component.prototype.getContentNode = function() {
-	var div = document.createElement('div'),
+	if(!this.element_) {
+		var div = this.element_ = document.createElement('div'),
 		content = this.getContentNodeInternal();
-	if(content) {
-		div.appendChild(content);
-	}
-	
-	for(var i = 0, l = this.dataProcessors.length; i < l;i++) {
-		if(this.dataProcessors[i].getContentNode) {
-			div.appendChild(this.dataProcessors[i].getContentNode());
+		if(content) {
+			div.appendChild(content);
 		}
 	}
-	return div;
+	return this.element_;
+};
+
+
+/**
+ * 
+ * @public
+ */
+mide.core.Component.prototype.hasContent = function() {
+	var node = this.getContentNode();
+	return node.children.length > 0;
 };
 
 
@@ -498,6 +475,10 @@ mide.core.Component.prototype.setDataProcessors = function(processors) {
 	}
 };
 
+mide.core.Component.prototype.getDataProcessors = function() {
+	return this.dataProcessors;
+};
+
 /**
  * @param {Object}
  */
@@ -513,7 +494,11 @@ mide.core.Component.prototype.getData = function(key) {
 };
 
 
-
+/**
+ * Get possible inputs (operations + configurations)
+ * 
+ * @public
+ */
 mide.core.Component.prototype.getInputs = function() {
 	var operations = this.operationManager.getOperations(),
 		inputs = [];
@@ -526,6 +511,11 @@ mide.core.Component.prototype.getInputs = function() {
 };
 
 
+/**
+ * Get outputs (events)
+ * 
+ * @public
+ */
 mide.core.Component.prototype.getOutputs = function() {
 	var operations = this.operationManager.getOperations(),
 		outputs = [];
@@ -543,6 +533,36 @@ mide.core.Component.prototype.getOutputs = function() {
 };
 
 
+/**
+ * Should be overridden by implementation
+ * 
+ * @public
+ */
+mide.core.Component.prototype.autorun = function() {
+	
+};
+
+/**
+ * Should be called when the component is removed from
+ * the composition.
+ * 
+ * @public
+ */
+mide.core.Component.prototype.remove = function() {
+	this.dispatchEvent({type: mide.core.Component.Events.REMOVE, component: this});
+	
+	this.dataProcessors = [];
+	
+	goog.events.removeAll(this.configurationDialog, 'change');
+	
+	this.configurationDialog = null;
+	
+	if(this.element_ && this.element_.parentNode) {
+		this.element_.parentNode.removeChild(this.element_);
+	}
+	this.element_ = null;
+};
+
 
 /**
  * List of events 
@@ -552,5 +572,9 @@ mide.core.Component.prototype.getOutputs = function() {
 mide.core.Component.Events = {
 		OPSTART: 'opstart',
 		OPEND: 'opend',
-		CONFIG_CHANGED: 'config_changed'
+		CONFIG_CHANGED: 'config_changed',
+		CONNECT: 'connect',
+		DISCONNECT: 'disconnect',
+		EVENT: 'event',
+		REMOVE: 'remove'
 };

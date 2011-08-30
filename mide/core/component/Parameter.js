@@ -2,7 +2,7 @@ goog.provide('mide.core.Parameter');
 
 
 /**
- * Meta information about a paramter.
+ * Meta information about a parameter.
  * 
  * @constructor
  */
@@ -21,11 +21,42 @@ mide.core.Parameter = function() {
 mide.core.Parameter.prototype.ref = '';
 
 /**
+ * @type Object
+ * @private
+ */
+mide.core.Parameter.prototype.data = null;
+
+
+/**
+ * @type boolean
+ * @private
+ */
+mide.core.Parameter.prototype.required = false;
+
+/**
  * @param {Object} ref
  * @public
  */
 mide.core.Parameter.prototype.setRef = function(ref) {
 	this.ref = ref;
+};
+
+
+/**
+ * @return {Object}
+ * @public
+ */
+mide.core.Parameter.prototype.setRequired = function(required) {
+	this.required = required;
+};
+
+
+/**
+ * @param {Object} ref
+ * @public
+ */
+mide.core.Parameter.prototype.isRequired = function() {
+	return this.required;
 };
 
 
@@ -55,12 +86,6 @@ mide.core.Parameter.prototype.getDependencies = function() {
 	return this.dependencies;
 };
 
-
-/**
- * @type Object
- * @private
- */
-mide.core.Parameter.prototype.metaData = null;
 
 
 /**

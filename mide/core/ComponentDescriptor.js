@@ -201,8 +201,8 @@ mide.core.ComponentDescriptor.prototype.getData = function(key) {
  * 
  * @public
  */
-mide.core.ComponentDescriptor.prototype.getInstance = function(opt_instanceId, opt_config) {
-	var instance = new mide.core.Component(this, opt_instanceId, opt_config);
+mide.core.ComponentDescriptor.prototype.getInstance = function(composition, opt_instanceId, opt_config) {
+	var instance = new mide.core.Component(this, composition, opt_instanceId, opt_config);
 	
 	var f = new Function("exports", this.implementation);
 	f(instance);
