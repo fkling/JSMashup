@@ -18,43 +18,83 @@ goog.require('goog.object');
 mide.ui.ConfigurationDialog = function(parameters) {
 	goog.ui.Component.call(this);
 
+	this.parameters = {};
 	this.fields = {};
 	this.dependencies = {};
-	var IF = mide.ui.input.InputFactory.getInstance();
-	var parameter, options, renderer, ref, rendererConfig;
+	
+	var parameter, field, ref;
 	
 	for(var i = 0, l = parameters.length; i < l; i++) {
 		parameter = parameters[i];
-		rendererConfig = new mide.util.OptionMap();
-		renderer = 'mide.ui.input.TextInput'; // default renderer is a text box
-		options = parameter.getData();
-		if(options.renderer) {
-			rendererConfig =  new mide.util.OptionMap(options.renderer, this.fields, function(obj) {
-				var value = obj.getValue();
-				return goog.isObject(value) ? value.value : value;
-			});
-			renderer = options.renderer.type;  
-		}
-		this.fields[parameter.getRef()] = IF.get(renderer, parameter.getRef(), options.label, rendererConfig);
+		field = this.getField_(parameter);
+		ref = parameter.getRef();
 		
+		// calculate reverse dependencies
 		var deps = parameter.getDependencies();
 		for(var j = deps.length; j--;) {
 			var rdeps = this.dependencies[deps[j]] || (this.dependencies[deps[j]] = []);
-			rdeps.push(parameter.getRef());
+			rdeps.push(ref);
 		};
 		
 		// listen for the change event
-		goog.events.listen(this.fields[parameter.getRef()], mide.ui.input.BaseInput.Events.CHANGE, function(event) {
-			this.dispatchEvent({type: mide.ui.input.BaseInput.Events.CHANGE});
-			var rdeps = this.dependencies[event.target.getName()] || [];
-			for(var i = rdeps.length; i--; ) {
-				this.fields[rdeps[i]].update();
-			}
-		}, false, this);
+		goog.events.listen(field, mide.ui.input.BaseInput.Events.CHANGE, this.onFieldValueChange_, false, this);
+		this.fields[ref] = field;
+		this.parameters[ref] = parameter;
 	}
 };
 
 goog.inherits(mide.ui.ConfigurationDialog, goog.ui.Component);
+
+/**
+ * 
+ * @public
+ */
+mide.ui.ConfigurationDialog.prototype.getInvalidFields = function() {
+	var invalid = [];
+	for(var ref in this.parameters) {
+		if(this.parameters[ref].isRequired() && this.fields[ref].isEmpty()) {
+			invalid.push(ref);
+		}
+	}
+	return invalid;
+};
+
+
+/**
+ * 
+ * @private
+ */
+mide.ui.ConfigurationDialog.prototype.getField_ = function(parameter) {
+	var rendererConfig = new mide.util.OptionMap(),
+		renderer = 'mide.ui.input.TextInput'; // default renderer is a text box
+		options = parameter.getData();
+		
+	if(options.renderer) {
+		rendererConfig =  new mide.util.OptionMap(options.renderer, this.fields, function(field) {
+			var value = field.getValue();
+			return goog.isObject(value) ? value.value : value;
+		});
+		renderer = options.renderer.type;  
+	}
+	
+	return mide.ui.input.InputFactory.getInstance().get(renderer, parameter.getRef(), options.label, rendererConfig);
+};
+
+
+/**
+ * 
+ * @private
+ */
+mide.ui.ConfigurationDialog.prototype.onFieldValueChange_ = function(event) {
+	this.dispatchEvent({type: mide.ui.input.BaseInput.Events.CHANGE});
+	
+	// update dependent fields
+	var rdeps = this.dependencies[event.target.getName()] || [];
+	
+	for(var i = rdeps.length; i--; ) {
+		this.fields[rdeps[i]].update();
+	}
+};
 
 
 /**
