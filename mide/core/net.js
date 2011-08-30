@@ -105,12 +105,12 @@ mide.core.net.makeRequest = function(options_) {
 			});
 			
 			ek = goog.events.listenOnce(xhr, goog.net.EventType.ERROR, function(e){
-				if(options.error) options.error.call(options.context, parser(e, options.responseFormat), e);
+				if(options.error) options.error.call(options.context, e.target.responseText, e);
 				goog.events.removeAll(xhr, goog.net.EventType.SUCCESS);
 			});
 						
 			goog.events.listenOnce(xhr, goog.net.EventType.COMPLETE, function(e){
-				if(options.complete) options.complete.call(options.context, parser(e, options.responseFormat), e);
+				if(options.complete) options.complete.call(options.context, e.target.responseText, e);
 			});
 			
 			goog.events.listenOnce(xhr, goog.net.EventType.READY, function(e){
