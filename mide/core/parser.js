@@ -9,10 +9,11 @@ mide.parser.parse = function(xmlString) {
 mide.parser.parseNode_ = function(node) {
 	var obj = {
 			'#text': ''
+			'@': {}
 	};
 	if(node.attributes) {
 		for(var i = node.attributes.length; i--; ) {
-			obj[node.attributes[i].name] = node.attributes[i].value;
+			obj['@'][node.attributes[i].name] = node.attributes[i].value;
 		}
 	}
 	
@@ -23,9 +24,12 @@ mide.parser.parseNode_ = function(node) {
 			}
 			obj[child.nodeName].push(mide.parser.parseNode_(child));
 		}
-		else if(child.nodeType) {
-			obj['#text'] += child.nodeValue;
+		else if(child.nodeType === 3) {
+			if(child.nodeValue.replace(/s+/g, '') !== '') {
+				obj['#text'] += child.nodeValue;
+			}		
 		}
 	}
+	obj['#text'] = obj['#text'];
 	return obj;
 };
