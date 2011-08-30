@@ -3,6 +3,7 @@ goog.provide('mide.config.session');
 
 goog.require('goog.ui.IdGenerator');
 goog.require('goog.object');
+goog.require('goog.net.Cookies');
 
 /**
  * @constructor
@@ -63,60 +64,14 @@ mide.core.Session.prototype.getId = function() {
  * @protected
  */
 mide.core.Session.prototype.getSessionId = function() {
-	return this.id_generator.getNextUniqueId() + Date.now();
-};
-
-/****** OLD STUFF ********/
-
-/**
- * @public
- */
-mide.core.Session.prototype.loadComposition = function(composition, cb) {
-	console.log(composition);
-	this.composition_ = composition;
-	var modules = [];
-	for(var item in composition.working.modules) {
-		var config = composition.working.modules[item];
-		goog.object.extend(config.config, config.value, {design: false, close: false, draggable: false, ddHandler: false});
-		modules.push(config.config);
+	var cm = new goog.net.Cookies(document),
+		name = "MIDE_SESSION_ID";
+	if(cm.containsKey(name)) {
+		return cm.get(name);
 	}
-	
-	mide.PubSub.clear();
-	
-	mide.Canvas.getInstance().loadComposition(modules, composition.working.wires);
-	mide.Canvas.getInstance().show();
-};
-
-/**
- * @public
- */
-mide.core.Session.prototype.runComposition = function() {
-	mide.Canvas.getInstance();
-};
-
-mide.core.Session.prototype.registerEventHandlers = function(modules, wires) {
-	mide.PubSub.clear();
-	
-	for(var i = wires.length; i--; ) {
-		var wireConfig = wires[i];
-		mide.PubSub.connect(modules[wireConfig.src.moduleId].instanceId, 
-				wireConfig.src.terminal, 
-				modules[wireConfig.tgt.moduleId].instanceId, 
-				wireConfig.tgt.terminal);
+	else {
+		var id = Date.now();
+		cm.set(name, id, -1, '/');
+		return id;
 	}
 };
-
-mide.core.Session.prototype.getComponent = function(id, cb) {
-	mide.registry.ServerRegistry.getInstance().getComponent(id, function(descriptor){
-		var config = mide.core.Session.mapping[descriptor.getName()];
-
-		var instance = descriptor.getInstance();
-		if(config) {
-			instance.addDataProcessor(new mide.ServiceCallConverter(config));
-		}
-		
-		cb(instance);
-	});
-};
-
-
