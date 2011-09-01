@@ -95,6 +95,11 @@ mide.core.net.makeRequest = function(options_) {
 			}
 		}
 		
+		// remove empty parameters
+		options.parameters = goog.object.filter(options.parameters, function(value) {
+			return value !== '';
+		});
+		
 		var parser = mide.core.net.makeRequest.parseResponse_;
 		
 		mide.core.net.getXhr(function(xhr){
@@ -105,12 +110,12 @@ mide.core.net.makeRequest = function(options_) {
 			});
 			
 			ek = goog.events.listenOnce(xhr, goog.net.EventType.ERROR, function(e){
-				if(options.error) options.error.call(options.context, e.target.responseText, e);
+				if(options.error) options.error.call(options.context, e.target.getResponseText(), e);
 				goog.events.removeAll(xhr, goog.net.EventType.SUCCESS);
 			});
 						
 			goog.events.listenOnce(xhr, goog.net.EventType.COMPLETE, function(e){
-				if(options.complete) options.complete.call(options.context, e.target.responseText, e);
+				if(options.complete) options.complete.call(options.context, e.target.getResponseText(), e);
 			});
 			
 			goog.events.listenOnce(xhr, goog.net.EventType.READY, function(e){
