@@ -1,5 +1,6 @@
 goog.provide('mide.util.OptionMap');
 
+goog.require('goog.object');
 
 /**
  * Provides a means to access 
@@ -196,3 +197,17 @@ mide.util.OptionMap.prototype.each = function(callback, opt_context) {
 		callback.call(opt_context, option.name, this.getValue_(option.value), i);
 	}
 };
+
+
+mide.util.OptionMap.get = function(obj, key, context, extr_funct) {
+	var map = new mide.util.OptionMap(obj, context, extr_funct);
+	if(key) {
+		return map.get(key);
+	}
+	else {
+		return goog.object.map(obj, function(value, key) {
+			return map.get(key) || '';
+		});
+	}
+};
+
