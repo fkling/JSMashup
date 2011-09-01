@@ -51,17 +51,21 @@ mide.ui.input.Autocomplete.prototype.renderInternal_ = function() {
 		var ac = new goog.ui.AutoComplete(matcher, renderer, inputhandler);
 		
 		goog.events.listen(ac, goog.ui.AutoComplete.EventType.UPDATE, function(e) {
-			this.lastDisplay_ = e.row;
-			this.dispatchEvent({
-			      type: mide.ui.input.BaseInput.Events.CHANGE
-			});
+			if(e.row !== this.lastDisplay_) {
+				this.lastDisplay_ = e.row;
+				this.dispatchEvent({
+					type: mide.ui.input.BaseInput.Events.CHANGE
+				});
+			}
 		}, false, this);
 		
 		goog.events.listen(this.inputElement_, 'change', function(e) {
-			this.lastDisplay_ = e.target.value;
-			this.dispatchEvent({
-			      type: mide.ui.input.BaseInput.Events.CHANGE
-			});
+			if(e.target.value !== this.lastDisplay_) {
+				this.lastDisplay_ = e.target.value;
+				this.dispatchEvent({
+					type: mide.ui.input.BaseInput.Events.CHANGE
+				});
+			}
 		}, false, this);
 	
 		inputhandler.attachAutoComplete(ac);
