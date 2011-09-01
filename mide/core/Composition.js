@@ -325,7 +325,9 @@ mide.core.Composition.prototype.getData = function(key) {
  * @private
  */
 mide.core.Composition.prototype.onConnect_ = function(e) {
-	this.connect(e.source, e.event, e.target, e.operation);
+	if(e.isSource) {
+		this.connect(e.source, e.event, e.target, e.operation);
+	}
 };
 
 /**
@@ -334,7 +336,9 @@ mide.core.Composition.prototype.onConnect_ = function(e) {
  * @private
  */
 mide.core.Composition.prototype.onDisconnect_ = function(e) {
-	this.disconnect(e.source, e.event, e.target, e.operation);
+	if(e.isSource) {
+		this.disconnect(e.source, e.event, e.target, e.operation);
+	}
 };
 
 /**
@@ -367,8 +371,10 @@ mide.core.Composition.prototype.onEventTrigger_ = function(e) {
 	if(this.connections[srcId] && this.connections[srcId][e.event]
      && this.connections[srcId][e.event].length > 0) {
          goog.array.forEach(this.connections[srcId][e.event], function(connection) {
-         	 //create a copy of params
-             self.components[connection.target].perform(connection.op, JSON.parse(JSON.stringify(e.parameters)));
+        	 setTimeout(function() {
+             	 //create a copy of the parameters
+        		 self.components[connection.target].perform(connection.op, JSON.parse(JSON.stringify(e.parameters)));
+        	 }, 10);        
          });
      }
 };

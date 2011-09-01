@@ -3,12 +3,14 @@ goog.provide('mide.core.Component.Events');
 
 goog.require('mide.PubSub');
 goog.require('mide.core.OperationManager');
+goog.require('mide.util.OptionMap');
 goog.require('mide.ui.ConfigurationDialog');
 
 goog.require('goog.events.EventTarget');
 goog.require('goog.dom');
 goog.require('goog.dom.classes');
 goog.require('goog.array');
+goog.require('goog.object');
 goog.require('goog.string');
 goog.require('goog.ui.IdGenerator');
 
@@ -20,9 +22,11 @@ mide.core.Component = function(componentDescriptor, composition, opt_id, opt_con
 	this.descriptor = componentDescriptor;
 	this.composition = composition;
 
-	this.outputBuffer = {};
-	this.inputBuffer = {};
-	this.dataProcessors = [];
+	this.requests = {};
+	
+	goog.array.forEach(this.descriptor.getRequests(), function(request) {
+		this.requests[request.ref] = request;
+	}, this);
 	
 	this.operationManager = new mide.core.OperationManager(this, this.descriptor.getOperations());
 
@@ -63,43 +67,19 @@ mide.core.Component.prototype.operationManager = null;
 
 
 /**
- * @type {Object.<string, {finished: boolean, requiredInputs: Array.<string>, depends: Array.<string>}>}
- * @private
- */
-mide.core.Component.prototype.operations = null;
-
-/**
- * @type {Object.<string, {depends: Array.<string>}>}
- * @private
- */
-mide.core.Component.prototype.events = null;
-
-
-/**
- * Output buffer
+ * Data process manager
  * 
- * @type {Object.<string, Object>}
+ * @type {mide.processor.ProcessorManager}
  * @private
  */
-mide.core.Component.prototype.outputBuffer = null;
+mide.core.Component.prototype.processorManager = null;
+
 
 /**
- * Input buffer
+ * Composition this component belongs to
  * 
- * @type {Object.<string, Object>}
  * @private
  */
-mide.core.Component.prototype.inputBuffer = null;
-
-/**
- * Data converters
- * 
- * @type {Object.<string, Object>}
- * @private
- */
-mide.core.Component.prototype.dataProcessors = null;
-
-
 mide.core.Component.prototype.composition = null;
 
 
@@ -163,63 +143,63 @@ mide.core.Component.prototype.getComposition = function() {
 };
 
 
+mide.core.Component.prototype.setProcessorManager = function(manager) {
+	this.processorManager = manager;
+};
+
+mide.core.Component.prototype.getProcessorManager = function() {
+	return this.processorManager;
+};
+
 /**
- * Prepares the component for a new run.
+ * @param {Object}
+ */
+mide.core.Component.prototype.setData = function(data, value) {
+	this.descriptor.setData(data, value);
+};
+
+/**
+ * @param {Object} a map of mide.core.Parameter 
+ */
+mide.core.Component.prototype.getData = function(key) {
+	return this.descriptor.getData(key);
+};
+
+/**
+ * Gets the content node of the component.
+ * 
+ * @return {?Element}
+ * 
+ * @private
+ */
+mide.core.Component.prototype.getContentNode = function() {
+	if(!this.element_) {
+		var div = this.element_ = document.createElement('div'),
+		content = this.getContentNodeInternal();
+		if(content) {
+			div.appendChild(content);
+		}
+	}
+	return this.element_;
+};
+
+/**
+ * Has to be overridden by the implementation
+ * 
+ * @protected
+ */
+mide.core.Component.prototype.getContentNodeInternal = function() {
+	
+};
+
+
+/**
  * 
  * @public
  */
-mide.core.Component.prototype.reset = function() {
-	this.operationManager.reset();
-};
-
-
-/**
- * Raise event.
- * 
- * @param {string} event name
- * @param {Object} params
- * @protected
- */
-mide.core.Component.prototype.triggerEvent = function(name, params) {
-	var self = this;
-	if(this.id) {
-		if(this.operationManager.hasOperation(name)) {
-			// operation was performed
-			this.dispatchEvent({type: mide.core.Component.Events.OPEND, component: this, operation: name});
-		}
-		var converters = [],
-			dataProcessors = this.dataProcessors.slice();
-		dataProcessors.reverse();
-		
-		for(var i = dataProcessors.length; i--;) {
-			if(dataProcessors[i].triggerEvent) converters.push(dataProcessors[i]);
-		}
-		
-		var next = function(data) {
-			if(converters[0]) {
-				converters.shift().triggerEvent(name, data, next);
-			}
-			else {
-				self.triggerEventInternal(name, data);
-			}
-		};
-		next(params);
-	}
-};
-
-/**
- * Raise event.
- * 
- * @param {string} event name
- * @param {Object} params
- * @private
- */
-mide.core.Component.prototype.triggerEventInternal = function(name, params) {
-	this.outputBuffer[name] = params;
-	var self = this;
-	setTimeout(function(){
-		self.dispatchEvent({type: mide.core.Component.Events.EVENT, source: self, event: name, parameters: params});
-	}, 0);
+mide.core.Component.prototype.hasContent = function() {
+	var node = this.getContentNode();
+	return node.children.length > 0;
 };
 
 
@@ -254,34 +234,21 @@ mide.core.Component.prototype.setConfiguration = function(config) {
  * @param {Object.<string, ?>} params parameters
  * @public
  */
-mide.core.Component.prototype.perform = function(operation, params) {
+mide.core.Component.prototype.perform = function(operation, data) {
 	var op = this.operationManager.getOperation(operation),
 		self = this;
 	if(op) {	
-		// cache parameters for later invocation
-		this.inputBuffer[operation] = params;
 		// record operation in history
-		this.operationManager.record(operation, params);
+		this.operationManager.record(operation, data);
 		
 		if(this.operationManager.hasUnresolvedDependencies(operation)) {
 			return;
 		}
 		else {
-			var converters = [];
-			for(var i = this.dataProcessors.length; i--;) {
-				if(this.dataProcessors[i].perform) converters.push(this.dataProcessors[i]);
-			}
-			
-			var next = function(data) {
-				if(converters[0]) {
-					converters.shift().perform(operation, data, next);
-				}
-				else {
-					self.performInternal(operation, data);
-				}
-			};
 			this.dispatchEvent({type: mide.core.Component.Events.OPSTART, component: this, operation: operation});
-			next(params);
+			this.processorManager.perform(operation, data, function(opertion, data) {
+				self.performInternal(operation, data);
+			});
 		}
 	}
 	else {
@@ -298,26 +265,39 @@ mide.core.Component.prototype.perform = function(operation, params) {
  * @param {Object.<string, ?>} params parameters
  * @private
  */
-mide.core.Component.prototype.performInternal = function(operation, params) {
+mide.core.Component.prototype.performInternal = function(operation, data) {
 	var op = this.operationManager.getOperation(operation),
 		func;
 	
-	if(op.isInputValid(params)) {
+	if(op.isInputValid(data)) {
 		var self = this;
-		func = this['op_' + operation] || function(){
-			if (op.getOutputs().length > 0) {
-				self.triggerEvent(operation, params);
-			}
-		};
-		if(!op.isAsync()) {
-			var old_func = func;
-			// we can mark the operation as finished automatically
-			func = function(params) {
-				old_func.call(this, params);
+		func = this['op_' + operation];
+		
+		// if the operation is synchronous or there is no implemented method,  
+		// we can mark the operation is finished automatically
+		if(!op.isAsync() || !func) {
+			var old_func = func || function(){};
+			func = function(data) {
+				old_func.call(this, data);
 				this.markOperationAsFinished(operation);
+				this.triggerEvent(operation, data);
 			};
 		}
-		func.call(this, params);	
+		
+		// If there is a request which should be run automatically,
+		// we run it before the actual operation
+		
+		var request = goog.object.findKey(this.requests, function(value) {
+			return value.runsOn === operation;
+		});
+		
+		if(request) {	
+			this.makeRequest(request, null, null, null, goog.bind(func, this, data), data);
+		}
+		else {
+			func.call(this, data);	
+		}
+		
 	}
 	else {
 		throw new Error('[Operation call error] Operation {' + operation + '}: Missing parameter(s)');
@@ -330,11 +310,39 @@ mide.core.Component.prototype.performInternal = function(operation, params) {
  * @private
  */
 mide.core.Component.prototype.markOperationAsFinished = function(operation) {
-	delete this.inputBuffer[operation];
 	this.dispatchEvent({type: mide.core.Component.Events.OPEND, component: this, operation: operation});
 	this.operationManager.resolve(operation);
 };
 
+
+/**
+ * Raise event.
+ * 
+ * @param {string} event name
+ * @param {Object} params
+ * @protected
+ */
+mide.core.Component.prototype.triggerEvent = function(event, data) {
+	var self = this;
+	if(goog.isString(data)) {
+		data = JSON.parse(data);
+	}
+	
+	this.processorManager.triggerEvent(event, data, function(event, data) {
+		self.triggerEventInternal(event, data);
+	});
+};
+
+/**
+ * Raise event.
+ * 
+ * @param {string} event name
+ * @param {Object} params
+ * @private
+ */
+mide.core.Component.prototype.triggerEventInternal = function(name, params) {
+	this.dispatchEvent({type: mide.core.Component.Events.EVENT, source: this, event: name, parameters: params});
+};
 
 
 /**
@@ -354,38 +362,53 @@ mide.core.Component.prototype.markOperationAsFinished = function(operation) {
  * @private
  */
 
-mide.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb) {
-	this.dispatchEvent({type: mide.core.Component.Events.OPSTART, component: this, operation: name});
-	var self = this;
-	//TODO Update to new net interface
-	var convertersRequest = [],
-		dataProcessors = this.dataProcessors.slice();
-	dataProcessors.reverse();
-	for(var i = dataProcessors.length; i--;) {
-		if(dataProcessors[i].makeRequest) convertersRequest.push(dataProcessors[i]);
+mide.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb, op_data) {
+	if(this.requests[name]) {
+		var context = {};
+		goog.object.extend(context, this.configurationDialog.getValues(), op_data || {});
+		if(this.requests[name].parameters) {
+			var parameters = mide.util.OptionMap.get(this.requests[name].parameters, null, context);
+			goog.object.extend(parameters, getData || {});
+			getData = parameters
+		}
+		
+		if(this.requests[name].data) {
+			if(!postData) {
+				postData = this.requests[name].data;
+			}
+			else if(goog.isObject(this.requests[name].data) && goog.isObject(postData)) {
+				var data = mide.util.OptionMap.get(this.requests[name].data, null, context);
+				goog.object.extend(data, postData);
+				postData = data;
+			}
+		}
+		
+		if(this.requests[name].url && !url) {
+			url = mide.util.OptionMap.get({url: this.requests[name].url}, 'url', context);
+		}
+		
+		if(this.requests[name].triggers) {
+			cb = function(data) {
+				this.markOperationAsFinished(name);
+				this.triggerEvent(this.requests[name].triggers, data);
+			};
+		}
 	}
-	var convertersResponse = convertersRequest.slice();
-	convertersResponse.reverse();
+	
+	if(url) {
+		this.dispatchEvent({type: mide.core.Component.Events.OPSTART, component: this, operation: name});
+		var config = {
+				url: url,
+				parameters: getData || {},
+				data: postData,
+				complete: cb,
+				context: this
+		};
 
-	var next = function(name, url, getData, postData) {
-		if(convertersRequest[0]) {
-			convertersRequest.shift().makeRequest(name, url, getData, postData, next);
-		}
-		else {
-			mide.core.net.makeRequest({
-				url: url, 
-				parameters: getData, 
-				data: postData, 
-				complete: function(response) {
-					while(convertersResponse[0]) {
-						response = convertersResponse.shift().makeResponse(name, response);
-					}
-					cb(response);
-				}
-			});
-		}
-	};
-	next(name, url, getData, postData);
+		this.processorManager.makeRequest(name, config, function(name, config) {
+			mide.core.net.makeRequest(config);
+		});
+	}
 };
 
 
@@ -398,15 +421,14 @@ mide.core.Component.prototype.makeRequest = function(name, url, getData, postDat
  * @param {string} operation
  */
 mide.core.Component.prototype.connect = function(src, event, target, operation) {
-	if(src === this) {
-		this.dispatchEvent({
-			type: mide.core.Component.Events.CONNECT, 
-			source: this.getId(), 
-			event: event.replace(/^output_/, ''), 
-			target: target, 
-			operation: operation.replace(/^input_/, '')
-		});
-	}
+	this.dispatchEvent({
+		type: mide.core.Component.Events.CONNECT, 
+		source: src,
+		event: event.replace(/^output_/, ''), 
+		target: target, 
+		operation: operation.replace(/^input_/, ''),
+		isSource: src === this
+	});
 };
 
 
@@ -418,79 +440,14 @@ mide.core.Component.prototype.connect = function(src, event, target, operation) 
  * @param {string} operation
  */
 mide.core.Component.prototype.disconnect = function(src, event, target, operation) {
-	if(src === this) {
-		this.dispatchEvent({
-			type: mide.core.Component.Events.DISCONNECT, 
-			source: this.getId(), 
-			event: event.replace(/^output_/, ''), 
-			target: target, 
-			operation: operation.replace(/^input_/, '')
-		});
-	}
-};
-
-
-/**
- * Gets the content node of the component.
- * 
- * @return {?Element}
- * 
- * @private
- */
-mide.core.Component.prototype.getContentNode = function() {
-	if(!this.element_) {
-		var div = this.element_ = document.createElement('div'),
-		content = this.getContentNodeInternal();
-		if(content) {
-			div.appendChild(content);
-		}
-	}
-	return this.element_;
-};
-
-
-/**
- * 
- * @public
- */
-mide.core.Component.prototype.hasContent = function() {
-	var node = this.getContentNode();
-	return node.children.length > 0;
-};
-
-
-mide.core.Component.prototype.getContentNodeInternal = function() {
-	
-};
-
-
-mide.core.Component.prototype.addDataProcessor = function(processor) {
-	processor.setComponentInstance(this);
-	this.dataProcessors.push(processor);
-};
-
-mide.core.Component.prototype.setDataProcessors = function(processors) {
-	for(var i = 0, l = processors.length; i < l; i++) {
-		this.addDataProcessor(processors[i]);
-	}
-};
-
-mide.core.Component.prototype.getDataProcessors = function() {
-	return this.dataProcessors;
-};
-
-/**
- * @param {Object}
- */
-mide.core.Component.prototype.setData = function(data, value) {
-	this.descriptor.setData(data, value);
-};
-
-/**
- * @param {Object} a map of mide.core.Parameter 
- */
-mide.core.Component.prototype.getData = function(key) {
-	return this.descriptor.getData(key);
+	this.dispatchEvent({
+		type: mide.core.Component.Events.DISCONNECT, 
+		source: src, 
+		event: event.replace(/^output_/, ''), 
+		target: target, 
+		operation: operation.replace(/^input_/, ''),
+		isSource:  src === this
+	});
 };
 
 
@@ -542,6 +499,17 @@ mide.core.Component.prototype.autorun = function() {
 	
 };
 
+
+/**
+ * Prepares the component for a new run.
+ * 
+ * @public
+ */
+mide.core.Component.prototype.reset = function() {
+	this.operationManager.reset();
+};
+
+
 /**
  * Should be called when the component is removed from
  * the composition.
@@ -550,8 +518,6 @@ mide.core.Component.prototype.autorun = function() {
  */
 mide.core.Component.prototype.remove = function() {
 	this.dispatchEvent({type: mide.core.Component.Events.REMOVE, component: this});
-	
-	this.dataProcessors = [];
 	
 	goog.events.removeAll(this.configurationDialog, 'change');
 	

@@ -13,11 +13,12 @@ goog.require('goog.string');
  * @constructor
  */
 mide.core.ComponentDescriptor = function() {
-	this.operations = {};
-	this.events = {};
-	this.parameters = {};
+	this.operations = [];
+	this.events = [];
+	this.parameters = [];
+	this.requests = [];
 	this.data = {};
-	this.processorManager = null;
+	this.processorProvider = null;
 };
 
 /**
@@ -67,8 +68,8 @@ mide.core.ComponentDescriptor.prototype.parameters = null;
 mide.core.ComponentDescriptor.prototype.autorun = '';
 
 
-mide.core.ComponentDescriptor.prototype.setProcessorManager = function(m) {
-	this.processorManager = m;
+mide.core.ComponentDescriptor.prototype.setProcessorProvider = function(p) {
+	this.processorProvider = p;
 };
 
 
@@ -145,6 +146,15 @@ mide.core.ComponentDescriptor.prototype.getParameters = function() {
 	return this.parameters;
 };
 
+
+/**
+ * @return {Object} a map of mide.core.Parameter
+ */
+mide.core.ComponentDescriptor.prototype.getRequests = function() {
+	return this.requests;
+};
+
+
 /**
  * @param {Object} a map of mide.core.Operation
  */
@@ -165,6 +175,15 @@ mide.core.ComponentDescriptor.prototype.setEvents = function(events) {
 mide.core.ComponentDescriptor.prototype.setParameters = function(parameters) {
 	this.parameters = parameters;
 };
+
+
+/**
+ * @param {Array} requests
+ */
+mide.core.ComponentDescriptor.prototype.setRequests = function(requests) {
+	this.requests = requests;
+};
+
 
 /**
  * @param {Object}
@@ -206,8 +225,8 @@ mide.core.ComponentDescriptor.prototype.getInstance = function(composition, opt_
 	
 	var f = new Function("exports", this.implementation);
 	f(instance);
-	if(this.processorManager) {
-		instance.setDataProcessors(this.processorManager.getProcessorsFor(this.id));
+	if(this.processorProvider) {
+		instance.setProcessorManager(this.processorProvider.getProcessorManager(instance));
 	}
 	return instance;
 };

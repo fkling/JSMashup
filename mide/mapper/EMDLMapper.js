@@ -34,6 +34,7 @@ mide.mapper.EMDLMapper.prototype.getDescriptor = function(id, model, implementat
 	descr.setOperations(this.getOperations(root));
 	descr.setEvents(this.getEvents(root));
 	descr.setParameters(this.getParameters(root));
+	descr.setRequests(this.getRequests(root));
 	
 	return descr;
 };
@@ -54,13 +55,13 @@ mide.mapper.EMDLMapper.prototype.getOperations = function(root) {
 		
 		operation.setInputs(goog.array.map(op.input || [], function(input) {
 			return input['@'];
-		});
+		}));
 		operation.setOutputs(goog.array.map(op.output || [], function(output) {
 			return output['@'];
-		});
+		}));
 		operation.setDependencies(op['@'].dependsOn ? op['@'].dependsOn.split(/\s*,\s*/) : []);
 		operation.setData('name', op['@'].name || '');
-		operation.setData('description', op.description ? op.description[0]['#text'] : ''));
+		operation.setData('description', op.description ? op.description[0]['#text'] : '');
 		operations.push(operation);
 	}
 	return operations;
@@ -79,11 +80,11 @@ mide.mapper.EMDLMapper.prototype.getEvents = function(root) {
 		event = new mide.core.Event();
 		event.setRef(ev['@'].ref);
 		event.setData('name', ev['@'].name || '');
-		event.setData('description', ev.description ? ev.description[0]['#text'] : ''));
+		event.setData('description', ev.description ? ev.description[0]['#text'] : '');
 		
 		event.setOutputs(goog.array.map(ev.output || [], function(output) {
 			return output['@'];
-		});
+		}));
 		events.push(event);
 	}
 	return events;
@@ -115,13 +116,44 @@ mide.mapper.EMDLMapper.prototype.getParameters = function(root) {
 	return parameters;
 };
 
-		if(para.option) {
-			parameter.setData(this.parseOptions(para.option));
+/**
+ * @private
+ */
+mide.mapper.EMDLMapper.prototype.getRequests = function(root) {
+	var result = [];
+	var requests = root.request || [], request, parameters = {}, data = null;
+
+	for( ; request = requests.pop(); ) {
+		if(request.parameters) {
+			parameters = goog.array.reduce(request.parameters[0].parameter || [], function(obj, parameter){
+				obj[parameter['@'].name] = parameter['@'].value;
+				return obj;
+			}, {});
 		}
 		
-		parameters.push(parameter);
+		if(request.data) {
+			if(request.data[0].parameter) {
+				data = goog.array.reduce(request.data[0].parameter || [], function(obj, parameter){
+					obj[parameter['@'].name] = parameter['@'].value;
+					return obj;
+				}, {});
+			}
+			else {
+				data = request.data['#text'];
+			}
+		}	
+		
+		result.push({
+			url: request.url && request.url[0]['#text'] || '',
+			ref: request['@'].ref,
+			runsOn: request['@'].runsOn,
+			triggers: request['@'].triggers,
+			parameters: parameters,
+			data: data,
+			method: request['@'].method || 'GET'
+		});
 	}
-	return parameters;
+	return result;
 };
 
 mide.mapper.EMDLMapper.prototype.parseOptions = function(options) {

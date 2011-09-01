@@ -135,7 +135,7 @@ mide.core.registry.ServerRegistry.prototype.getComponentDescriptorById = functio
 				case 200:
 					var data = xhr.getResponseJson();
 					var descr = self.getDescriptor_(id, data.model, data.implementation, data.data);
-					if(self.options.processor_manager) descr.setProcessorManager(self.options.processor_manager);
+					if(self.options.processor_provider) descr.setProcessorProvider(self.options.processor_provider);
 					self.componentDescriptors_[id] = descr;
 					success(descr);
 					break;
