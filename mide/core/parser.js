@@ -8,7 +8,7 @@ mide.parser.parse = function(xmlString) {
 
 mide.parser.parseNode_ = function(node) {
 	var obj = {
-			'#text': ''
+			'#text': '',
 			'@': {}
 	};
 	if(node.attributes) {
