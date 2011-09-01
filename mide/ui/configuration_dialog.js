@@ -139,6 +139,19 @@ mide.ui.ConfigurationDialog.prototype.setConfiguration = function(config) {
 	}, this);
 };
 
+
+/**
+ * Get a map of values
+ * 
+ * @param {Object} value map
+ * @public
+ */
+mide.ui.ConfigurationDialog.prototype.getValues = function() {
+	return goog.object.map(this.fields, function(input) {
+		return input.getValue().value;
+	});
+};
+
 /**
  * @override
  */
