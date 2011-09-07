@@ -52,7 +52,7 @@ mide.mapper.JSONMapper.prototype.getComposition = function(id, model, data, call
 	for(var i = 0, l = model.components.length; i < l; i++ ) {
 		(function(index, definition) {
 			self.registry.getComponentDescriptorById(definition.component_id, function(descr) {
-				instances[index] = descr.getInstance(composition, definition.instance_id, definition.config);
+				instances[index] = descr.getInstance(definition.instance_id, definition.config);
 				num_instances++;
 				runWhenFinished();
 			}, function(){

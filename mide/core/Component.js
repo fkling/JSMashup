@@ -1,26 +1,22 @@
 goog.provide('mide.core.Component');
 goog.provide('mide.core.Component.Events');
 
-goog.require('mide.PubSub');
 goog.require('mide.core.OperationManager');
 goog.require('mide.util.OptionMap');
 goog.require('mide.ui.ConfigurationDialog');
 
-goog.require('goog.events.EventTarget');
+goog.require('goog.pubsub.PubSub');
 goog.require('goog.dom');
-goog.require('goog.dom.classes');
 goog.require('goog.array');
 goog.require('goog.object');
-goog.require('goog.string');
-goog.require('goog.ui.IdGenerator');
 
 
-mide.core.Component = function(componentDescriptor, composition, opt_id, opt_config, opt_domHelper) {
-	goog.ui.Component.call(this, opt_domHelper);
+mide.core.Component = function(componentDescriptor, opt_id, opt_config) {
+	goog.base(this);
+	this.Events = mide.core.Component.Events;
 	
 	this.id = opt_id;
 	this.descriptor = componentDescriptor;
-	this.composition = composition;
 
 	this.requests = {};
 	
@@ -35,7 +31,7 @@ mide.core.Component = function(componentDescriptor, composition, opt_id, opt_con
 	this.configurationDialog.createDom();
 	
 	goog.events.listen(this.configurationDialog, 'change', function() {
-		this.dispatchEvent({type: mide.core.Component.Events.CONFIG_CHANGED});
+		this.publish(mide.core.Component.Events.CONFIG_CHANGED, this);
 	}, false, this);
 	
 	if(opt_config) {
@@ -43,7 +39,7 @@ mide.core.Component = function(componentDescriptor, composition, opt_id, opt_con
 	}
 };
 
-goog.inherits(mide.core.Component, goog.events.EventTarget);
+goog.inherits(mide.core.Component, goog.pubsub.PubSub);
 
 
 /**
@@ -245,7 +241,7 @@ mide.core.Component.prototype.perform = function(operation, data) {
 			return;
 		}
 		else {
-			this.dispatchEvent({type: mide.core.Component.Events.OPSTART, component: this, operation: operation});
+			this.publish(mide.core.Component.Events.OPSTART, this, operation);
 			this.processorManager.perform(operation, data, function(opertion, data) {
 				self.performInternal(operation, data);
 			});
@@ -310,7 +306,7 @@ mide.core.Component.prototype.performInternal = function(operation, data) {
  * @private
  */
 mide.core.Component.prototype.markOperationAsFinished = function(operation) {
-	this.dispatchEvent({type: mide.core.Component.Events.OPEND, component: this, operation: operation});
+	this.publish(mide.core.Component.Events.OPEND, this, operation);
 	this.operationManager.resolve(operation);
 };
 
@@ -341,7 +337,7 @@ mide.core.Component.prototype.triggerEvent = function(event, data) {
  * @private
  */
 mide.core.Component.prototype.triggerEventInternal = function(name, params) {
-	this.dispatchEvent({type: mide.core.Component.Events.EVENT, source: this, event: name, parameters: params});
+	this.publish(mide.core.Component.Events.EVENT, this, name, params);
 };
 
 
@@ -396,7 +392,7 @@ mide.core.Component.prototype.makeRequest = function(name, url, getData, postDat
 	}
 	
 	if(url) {
-		this.dispatchEvent({type: mide.core.Component.Events.OPSTART, component: this, operation: name});
+		this.publish(mide.core.Component.Events.OPSTART, this, name);
 		var config = {
 				url: url,
 				parameters: getData || {},
@@ -421,14 +417,13 @@ mide.core.Component.prototype.makeRequest = function(name, url, getData, postDat
  * @param {string} operation
  */
 mide.core.Component.prototype.connect = function(src, event, target, operation) {
-	this.dispatchEvent({
-		type: mide.core.Component.Events.CONNECT, 
-		source: src,
-		event: event.replace(/^output_/, ''), 
-		target: target, 
-		operation: operation.replace(/^input_/, ''),
-		isSource: src === this
-	});
+	this.publish(mide.core.Component.Events.CONNECT, 
+			src, 
+			event.replace(/^output_/, ''), 
+			target,  
+			operation.replace(/^input_/, ''), 
+			src === this
+	);
 };
 
 
@@ -440,14 +435,13 @@ mide.core.Component.prototype.connect = function(src, event, target, operation) 
  * @param {string} operation
  */
 mide.core.Component.prototype.disconnect = function(src, event, target, operation) {
-	this.dispatchEvent({
-		type: mide.core.Component.Events.DISCONNECT, 
-		source: src, 
-		event: event.replace(/^output_/, ''), 
-		target: target, 
-		operation: operation.replace(/^input_/, ''),
-		isSource:  src === this
-	});
+	this.publish(mide.core.Component.Events.DISCONNECT, 
+			src, 
+			event.replace(/^output_/, ''), 
+			target,  
+			operation.replace(/^input_/, ''), 
+			src === this
+	);
 };
 
 
@@ -457,12 +451,10 @@ mide.core.Component.prototype.disconnect = function(src, event, target, operatio
  * @public
  */
 mide.core.Component.prototype.getInputs = function() {
-	var operations = this.operationManager.getOperations(),
-		inputs = [];
-	for(var name in operations) {
-		if(!operations[name].isInternal()) {
-			inputs.push('input_' + name);
-		}	
+	var operations = this.descriptor.getOperations(),
+		inputs = {};
+	for(var j = operations.length; j--; ) {
+		inputs['input_' + operations[j].getRef()] = operations[j].getData('name');
 	}
 	return inputs;
 };
@@ -474,17 +466,17 @@ mide.core.Component.prototype.getInputs = function() {
  * @public
  */
 mide.core.Component.prototype.getOutputs = function() {
-	var operations = this.operationManager.getOperations(),
-		outputs = [];
-	for(var name in operations) {
-		if(operations[name].getOutputs().length > 0) {
-			outputs.push('output_' + name);
+	var operations = this.descriptor.getOperations(),
+		outputs = {};
+	for(var j = operations.length; j--; ) {
+		if(operations[j].getOutputs().length > 0) {
+			outputs['output_' + operations[j].getRef()] = operations[j].getData('name')
 		}
 	}
 	
 	var events = this.descriptor.getEvents();
 	for(var j = events.length; j--; ) {
-		outputs.push('output_' + events[j].ref);
+		outputs['output_' + events[j].getRef()] = events[j].getData('name')
 	}
 	return outputs;
 };
@@ -509,6 +501,18 @@ mide.core.Component.prototype.reset = function() {
 	this.operationManager.reset();
 };
 
+/**
+ * Should be called when the component is added to a
+ * the composition.
+ * 
+ * @public
+ */
+mide.core.Component.prototype.add = function(composition) {
+	this.composition = composition;
+	this.publish(mide.core.Component.Events.ADDED, this, this.composition);
+};
+
+
 
 /**
  * Should be called when the component is removed from
@@ -517,7 +521,7 @@ mide.core.Component.prototype.reset = function() {
  * @public
  */
 mide.core.Component.prototype.remove = function() {
-	this.dispatchEvent({type: mide.core.Component.Events.REMOVE, component: this});
+	this.publish(mide.core.Component.Events.REMOVED, this, this.composition);
 	
 	goog.events.removeAll(this.configurationDialog, 'change');
 	
@@ -542,5 +546,6 @@ mide.core.Component.Events = {
 		CONNECT: 'connect',
 		DISCONNECT: 'disconnect',
 		EVENT: 'event',
-		REMOVE: 'remove'
+		ADDED: 'added',
+		REMOVED: 'removed'
 };

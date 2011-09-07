@@ -10,7 +10,9 @@ goog.require('goog.array');
  * 
  * @implements mide.mapper.ComponentMapper
  */
-mide.mapper.EMDLMapper = function() {};
+mide.mapper.EMDLMapper = function(processorProvider) {
+	this.processorProvider = processorProvider;
+};
 
 /**
  * @override
@@ -23,6 +25,7 @@ mide.mapper.EMDLMapper.prototype.getDescriptor = function(id, model, implementat
 	data = data || {};
 	var root = this.parseXML(model);
 	var descr = new mide.core.ComponentDescriptor();
+	descr.setMapper(this);
 	
 	descr.setId(root['@'].id || id);
 	descr.setModel(model);
@@ -39,6 +42,20 @@ mide.mapper.EMDLMapper.prototype.getDescriptor = function(id, model, implementat
 	return descr;
 };
 
+
+/**
+ * @override
+ */
+mide.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_config) {
+	var instance = new mide.core.Component(descriptor, opt_id, opt_config);
+	
+	var f = new Function("exports", descriptor.getData('implementation'));
+	f(instance);
+	if(this.processorProvider) {
+		instance.setProcessorManager(this.processorProvider.getProcessorManager(instance));
+	}
+	return instance;
+};
 
 /**
  * @private
@@ -98,7 +115,7 @@ mide.mapper.EMDLMapper.prototype.getParameters = function(root) {
 	var parameters = [];
 	var paras = [], para, parameter;
 	
-	if(root.configuration && (paras = root.configuration[0].input)) {	
+	if(paras = root.config) {	
 		for( ; para = paras.pop(); ) {
 			parameter = new mide.core.Parameter();
 			parameter.setRef(para['@'].ref);

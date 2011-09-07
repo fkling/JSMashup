@@ -12,7 +12,9 @@ goog.require('goog.string');
  * 
  * @constructor
  */
-mide.core.ComponentDescriptor = function() {
+mide.core.ComponentDescriptor = function(mapper) {
+	this.mapper = mapper;
+	
 	this.operations = [];
 	this.events = [];
 	this.parameters = [];
@@ -32,6 +34,7 @@ mide.core.ComponentDescriptor.prototype.id = null;
  * @type {Object|string}
  * @private
  */
+mide.core.ComponentDescriptor.prototype.mapper = null;
 mide.core.ComponentDescriptor.prototype.model = '';
 
 /**
@@ -58,14 +61,6 @@ mide.core.ComponentDescriptor.prototype.events = null;
  */
 mide.core.ComponentDescriptor.prototype.parameters = null;
 
-/**
- * The name of the operation which should be run when the component
- * finished loading.
- * 
- * @type {string}
- * @private
- */
-mide.core.ComponentDescriptor.prototype.autorun = '';
 
 
 mide.core.ComponentDescriptor.prototype.setProcessorProvider = function(p) {
@@ -74,17 +69,24 @@ mide.core.ComponentDescriptor.prototype.setProcessorProvider = function(p) {
 
 
 /**
+ * Set the mapper with which this instance was created
  * Set the XML model file. All information about a component are parsed
  * from this file.
  * 
+ * @param {mide.mapper.ComponentMapper} mapper
  * @param {string} xml the XML configuration to create the component from
  * @public
  */
+mide.core.ComponentDescriptor.prototype.setMapper = function(mapper) {
+	this.mapper = mapper;
+};
+
 mide.core.ComponentDescriptor.prototype.setModel = function(model) {
 	this.model = model;
 };
 
 /**
+ * @return {mide.mapper.ComponentMapper}
  * @return {Object|string}
  * @public
  */
@@ -98,6 +100,10 @@ mide.core.ComponentDescriptor.prototype.getModel = function() {
  * @param {string} js the implementation
  * @public
  */
+mide.core.ComponentDescriptor.prototype.getMapper = function() {
+	return this.mapper;	
+};
+
 mide.core.ComponentDescriptor.prototype.setImplementation = function(implementation) {
 	this.implementation = implementation;
 };
@@ -188,13 +194,21 @@ mide.core.ComponentDescriptor.prototype.setRequests = function(requests) {
 /**
  * @param {Object}
  */
-mide.core.ComponentDescriptor.prototype.setData = function(data, value) {
-	if(arguments.length == 2) {
-		var d = this.data || (this.data = {});
-		d[data] = value;
+mide.core.ComponentDescriptor.prototype.setData = function(data, value, overwrite) {
+	if(arguments.length == 2 && goog.isString(data)) {
+		this.data[data] = value;
 	}
 	else {
-		this.data = data;
+		if(overwrite) {
+			this.data = data;
+		}
+		else {
+			for(var name in data) {
+				if(data.hasOwnProperty(name)) {
+					this.data[name] = data[name];
+				}
+			}
+		}
 	}
 };
 
@@ -220,13 +234,16 @@ mide.core.ComponentDescriptor.prototype.getData = function(key) {
  * 
  * @public
  */
-mide.core.ComponentDescriptor.prototype.getInstance = function(composition, opt_instanceId, opt_config) {
-	var instance = new mide.core.Component(this, composition, opt_instanceId, opt_config);
-	
-	var f = new Function("exports", this.implementation);
-	f(instance);
-	if(this.processorProvider) {
-		instance.setProcessorManager(this.processorProvider.getProcessorManager(instance));
-	}
-	return instance;
+mide.core.ComponentDescriptor.prototype.getInstance = function(opt_instanceId, opt_config) {
+	return this.mapper.getInstance(this, opt_instanceId, opt_config);
+};
+
+
+/**
+ * Validates the component descriptor according to its model. 
+ * 
+ * @param {function} callback - a function receiving two parameters, a boolean and a list of errors
+ */
+mide.core.ComponentDescriptor.prototype.validate = function(callback) {
+	this.mapper.validate(callback);
 };

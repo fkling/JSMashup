@@ -57,13 +57,22 @@ org.reseval.processor.ServiceCall.prototype.isConfiguredFor = function(action) {
 org.reseval.processor.ServiceCall.prototype.setComponent = function(component) {
 	goog.base(this, 'setComponent', component);
 	
-	goog.events.listen(this.component.getComposition(), mide.core.Composition.Events.CHANGE, function() {
-		this.n++;
-	}, null, this);
-	
-	goog.events.listen(this.component, mide.core.Component.Events.CONNECT, this.onConnect_, null, this);
-	
-	goog.events.listen(this.component, mide.core.Component.Events.DISCONNECT, this.onDisconnect_, null, this);
+	component.subscribe(mide.core.Component.Events.ADDED, this.onAdd_, this);
+	component.subscribe(mide.core.Component.Events.REMOVED, this.onRemove_, this);
+	component.subscribe(mide.core.Component.Events.CONNECT, this.onConnect_, this);
+	component.subscribe(mide.core.Component.Events.DISCONNECT, this.onDisconnect_, this);
+};
+
+org.reseval.processor.ServiceCall.prototype.onAdd_ = function(component, composition) {
+	composition.subscribe(composition.Events.CHANGED, this.onChange_, this);
+};
+
+org.reseval.processor.ServiceCall.prototype.onRemove_ = function(component, composition) {
+	composition.unsubscribe(composition.Events.CHANGED, this.onChange_, this);
+};
+
+org.reseval.processor.ServiceCall.prototype.onChange_ = function(composition) {
+	this.n++;
 };
 
 /**
@@ -74,21 +83,21 @@ org.reseval.processor.ServiceCall.prototype.setComponent = function(component) {
  * 
  * @private
  */
-org.reseval.processor.ServiceCall.prototype.onConnect_ = function(e) {
-	var trigger = this.getEventTrigger(e.event);
-	if(e.isSource) {
-		if(!goog.array.some(e.target.getProcessorManager().getProcessors(), function(processor) {
-			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(e.operation);
+org.reseval.processor.ServiceCall.prototype.onConnect_ = function(source, event, target, operation, isSource) {
+	var trigger = this.getEventTrigger(event);
+	if(isSource) {
+		if(!goog.array.some(target.getProcessorManager().getProcessors(), function(processor) {
+			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(operation);
 		}) && this.isConfiguredFor(trigger)) {
 			var config = this.data[trigger] || ( this.data[trigger] = {});
 			config.getData = true;
 		}
 	}
 	else {
-		if(!goog.array.some(e.source.getProcessorManager().getProcessors(), function(processor) {
-			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(processor.getEventTrigger(e.event));
-		}) && this.isConfiguredFor(e.operation)) {
-			this.data[e.operation].sendData = true;
+		if(!goog.array.some(source.getProcessorManager().getProcessors(), function(processor) {
+			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(processor.getEventTrigger(event));
+		}) && this.isConfiguredFor(operation)) {
+			this.data[operation].sendData = true;
 		}
 	}
 };
@@ -102,21 +111,21 @@ org.reseval.processor.ServiceCall.prototype.onConnect_ = function(e) {
  * 
  * @private
  */
-org.reseval.processor.ServiceCall.prototype.onDisconnect_ = function(e) {
-	var trigger = this.getEventTrigger(e.event);
-	if(e.isSource) {
-		if(!goog.array.some(e.target.getProcessorManager().getProcessors(), function(processor) {
-			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(e.operation);
+org.reseval.processor.ServiceCall.prototype.onDisconnect_ = function(source, event, target, operation, isSource) {
+	var trigger = this.getEventTrigger(event);
+	if(isSource) {
+		if(!goog.array.some(target.getProcessorManager().getProcessors(), function(processor) {
+			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(operation);
 		}) && this.isConfiguredFor(trigger)) {
 			var config = this.data[trigger] || ( this.data[trigger] = {});
 			config.getData = false;
 		}
 	}
 	else {
-		if(!goog.array.some(e.source.getProcessorManager().getProcessors(), function(processor) {
-			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(processor.getEventTrigger(e.event));
-		}) && this.isConfiguredFor(e.operation)) {
-			this.data[e.operation].sendData = false;
+		if(!goog.array.some(source.getProcessorManager().getProcessors(), function(processor) {
+			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(processor.getEventTrigger(event));
+		}) && this.isConfiguredFor(operation)) {
+			this.data[operation].sendData = false;
 		}
 	}
 };
