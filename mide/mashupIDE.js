@@ -4,7 +4,6 @@
 goog.provide('MashupIDE');
 
 goog.require('mide.core.Session');
-goog.require('mide.PubSub');
 goog.require('mide.core.registry.ServerRegistry');
 
 goog.require('goog.ui.Component');
