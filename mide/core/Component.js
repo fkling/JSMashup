@@ -342,6 +342,18 @@ mide.core.Component.prototype.triggerEventInternal = function(name, params) {
 
 
 /**
+ * Raise error.
+ * 
+ * @param {string} event name
+ * @param {Object} params
+ * @private
+ */
+mide.core.Component.prototype.triggerError = function(name, msg) {
+	this.publish(mide.core.Component.Events.ERROR, this, name, msg);
+};
+
+
+/**
  * Used internally to make a named Ajax request, as defined in the 
  * component description.
  * 
@@ -397,7 +409,10 @@ mide.core.Component.prototype.makeRequest = function(name, url, getData, postDat
 				url: url,
 				parameters: getData || {},
 				data: postData,
-				complete: cb,
+				success: cb,
+				error: function(msg, e) {
+					this.triggerError(name, e.target.getStatusText());
+				},
 				context: this
 		};
 
@@ -540,6 +555,7 @@ mide.core.Component.prototype.remove = function() {
  * @type {Object}
  */
 mide.core.Component.Events = {
+		ERROR: 'error',
 		OPSTART: 'opstart',
 		OPEND: 'opend',
 		CONFIG_CHANGED: 'config_changed',

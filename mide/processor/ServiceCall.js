@@ -85,7 +85,11 @@ org.reseval.processor.ServiceCall.prototype.onChange_ = function(composition) {
  */
 org.reseval.processor.ServiceCall.prototype.onConnect_ = function(source, event, target, operation, isSource) {
 	var trigger = this.getEventTrigger(event);
+	
+	// if this component is the source, then we have to fetch data from service
 	if(isSource) {
+		// if the other component has no ServiceCall data processor and this component
+		// makes a service call for the action that triggers the event
 		if(!goog.array.some(target.getProcessorManager().getProcessors(), function(processor) {
 			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(operation);
 		}) && this.isConfiguredFor(trigger)) {
@@ -93,7 +97,7 @@ org.reseval.processor.ServiceCall.prototype.onConnect_ = function(source, event,
 			config.getData = true;
 		}
 	}
-	else {
+	else { // otherwise we have to send data to the service
 		if(!goog.array.some(source.getProcessorManager().getProcessors(), function(processor) {
 			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(processor.getEventTrigger(event));
 		}) && this.isConfiguredFor(operation)) {
@@ -170,13 +174,15 @@ org.reseval.processor.ServiceCall.prototype.perform = function(operation, params
 			responseFormat: 'json',
 			context: this,
 			data: this.data[operation].sendData ? params.dataObject || params || {} : null,
-			complete: function(response, e) {
-				var r = e.target.getResponseJson();
-				this.data[operation].cacheKey = r.cacheKey;
-				this.data[operation].dataObject = r.dataObject;
+			success: function(response, e) {
+				this.data[operation].cacheKey = response.cacheKey;
+				this.data[operation].dataObject = response.dataObject;
 				if(config.passthrough) {
-					next(r.dataObject);
+					next(response.dataObject);
 				}
+			},
+			error: function(txt, e) {
+				this.component.triggerError(operation, txt);
 			}
 		});
 	}
@@ -228,19 +234,27 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
 			requestConfig.parameters.data = 'yes';
 		}
 		
-		var orig_callback = requestConfig.complete,
+		var orig_success = requestConfig.success,
+			orig_error = requestConfig.error,
+			orig_complete = requestConfig.complete,
 			orig_context =  requestConfig.context;
 		
 		
 		requestConfig.context = this;
-		requestConfig.complete = function(response, e) {
+		requestConfig.complete = function() {
+			if(orig_complete) orig_complete.apply(orig_context, arguments);
+		};
+		requestConfig.success = function(response, e) {
 			response = JSON.parse(response);
 			if(response.cacheKey) {
 				this.data[name].cacheKey = response.cacheKey;
 			}
 			this.data[name].dataObject = response.dataObject;
-			orig_callback.call(orig_context, JSON.stringify(response.dataObject), e);
-		};	
+			if(orig_success) orig_success.call(orig_context, JSON.stringify(response.dataObject), e);
+		};
+		requestConfig.error = function() {
+			if(orig_error) orig_error.apply(orig_context, arguments);
+		};
 	}
 	next(name, requestConfig);
 };
