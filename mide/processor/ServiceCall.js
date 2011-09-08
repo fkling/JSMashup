@@ -224,15 +224,32 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
 	var config = this.config[name];
 	
 	if(config && config.url) {
-		this.data[name] = this.data[name] || {};
-		this.data[name].cacheKey = this.getKey(config);
+		var data = this.data[name] = this.data[name] || {};
+		var key = this.data[name].cacheKey = this.getKey(config);
 		
 		requestConfig.url = config.url;
-		requestConfig.parameters.key = this.data[name].cacheKey;
-		
-		if(this.data[name].getData) {
-			requestConfig.parameters.data = 'yes';
+		if(config.method === 'POST') {
+			var post_data = {
+				key: key,
+				dataRequest: data.getData ? 'yes' : 'no',
+				mappersList: []
+			};
+			for(var p in (requestConfig.parameters || {})) {
+				if(requestConfig.parameters[p])
+					post_data.mappersList.push({paramName: p, paramValue: requestConfig.parameters[p]});
+			}
+			requestConfig.parameters = {};
+			requestConfig.data = JSON.stringify(post_data);
+			requestConfig.contentType = 'application/json';
 		}
+		else {
+			requestConfig.parameters.key = key;
+			
+			if(data.getData) {
+				requestConfig.parameters.data = 'yes';
+			}
+		}
+
 		
 		var orig_success = requestConfig.success,
 			orig_error = requestConfig.error,

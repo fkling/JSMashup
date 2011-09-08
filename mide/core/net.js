@@ -80,8 +80,10 @@ mide.core.net.makeRequest = function(options_) {
 			success: null,
 			error: null,
 			context: null,
-			responseFormat: null
-	};
+			responseFormat: null,
+			contentType: null
+	},
+	headers = {};
 	
 	goog.object.extend(options, options_);
 	
@@ -93,6 +95,10 @@ mide.core.net.makeRequest = function(options_) {
 			if(options.method.toUpperCase() === 'GET') {
 				options.method = 'POST';
 			}
+		}
+		
+		if(options.contentType) {
+			headers['Content-Type'] = options.contentType;
 		}
 		
 		// remove empty parameters
@@ -123,7 +129,7 @@ mide.core.net.makeRequest = function(options_) {
 			});
 			
 			options.url = mide.core.net.buildUri(options.url, options.parameters);
-			xhr.send(options.url, options.method, options.data);
+			xhr.send(options.url, options.method, options.data, headers);
 		});
 	}
 	
