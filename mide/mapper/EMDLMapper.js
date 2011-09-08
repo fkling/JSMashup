@@ -49,7 +49,7 @@ mide.mapper.EMDLMapper.prototype.getDescriptor = function(id, model, implementat
 mide.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_config) {
 	var instance = new mide.core.Component(descriptor, opt_id, opt_config);
 	
-	var f = new Function("exports", descriptor.getData('implementation'));
+	var f = new Function("exports", descriptor.getImplementation());
 	f(instance);
 	if(this.processorProvider) {
 		instance.setProcessorManager(this.processorProvider.getProcessorManager(instance));
