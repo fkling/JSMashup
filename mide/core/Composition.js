@@ -142,7 +142,11 @@ mide.core.Composition.prototype.setComponents = function(components){
  * return  {Array} components
  */
 mide.core.Composition.prototype.getComponents = function(){
-	return this.components;
+	var result = [];
+	for(var id in this.components) {
+		result.push(this.components[id]);
+	}
+	return result;
 };
 
 
@@ -309,13 +313,21 @@ mide.core.Composition.prototype.disconnect = function(source, event, target, ope
 /**
  * @param {Object}
  */
-mide.core.Composition.prototype.setData = function(data, value) {
-	if(arguments.length == 2) {
-		var d = this.data || (this.data = {});
-		d[data] = value;
+mide.core.Composition.prototype.setData = function(data, value, overwrite) {
+	if(arguments.length == 2 && goog.isString(data)) {
+		this.data[data] = value;
 	}
 	else {
-		this.data = data;
+		if(overwrite) {
+			this.data = data;
+		}
+		else {
+			for(var name in data) {
+				if(data.hasOwnProperty(name)) {
+					this.data[name] = data[name];
+				}
+			}
+		}
 	}
 };
 

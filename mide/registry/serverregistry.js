@@ -40,19 +40,6 @@ mide.core.registry.ServerRegistry = function(options) {
 	
 	
 	/**
-	 * @type {boolean}
-	 * @private
-	 */
-	this.compositionsLoaded = false;
-	
-	
-	/**
-	 * @type {boolean}
-	 * @private
-	 */
-	this.componentsLoaded = false;
-	
-	/**
 	 * @type {Array}
 	 * @private
 	 */
@@ -82,7 +69,7 @@ goog.inherits(mide.core.registry.ServerRegistry, mide.core.registry.BaseRegistry
 
 
 /**
- * @overwrite
+ * @override
  */
 mide.core.registry.ServerRegistry.prototype.getComponents = function(success, error) {
 	var self = this;
@@ -99,7 +86,7 @@ mide.core.registry.ServerRegistry.prototype.getComponents = function(success, er
 };
 
 /**
- * @overwrite
+ * @override
  */
 mide.core.registry.ServerRegistry.prototype.getUserComponents = function(success, error) {
 	var self = this;
@@ -119,65 +106,27 @@ mide.core.registry.ServerRegistry.prototype.getUserComponents = function(success
 };
 
 /**
- * @overwrite
+ * @override
  */
 mide.core.registry.ServerRegistry.prototype.getComponentDescriptorById = function(id, success, error) {
-	var self = this;
 	if(this.componentDescriptors_[id]) {
 		success(this.componentDescriptors_[id]);
 	}
 	else {
-		mide.core.net.getXhr(function(xhr){			
-			goog.events.listen(xhr, goog.net.EventType.COMPLETE, function(evt) {
-				var xhr = evt.target;
-
-				switch(xhr.getStatus()) {
-				case 200:
-					var data = xhr.getResponseJson();
-					var descr = self.getDescriptor_(id, data.model, data.implementation, data.data);
-					self.componentDescriptors_[id] = descr;
-					success(descr);
-					break;
-				case 403:
-				case 404:
-					error(xhr.getResponseText());
-				}
-			  });			
-			xhr.send(self.components_url + id, 'GET');
-		});
-	}
-};
-
-/**
- * @overwrite
- */
-mide.core.registry.ServerRegistry.prototype.getComponentDescriptorByUrl = function(url, success, error) {
-	
-};
-
-/**
- * @overwrite
- */
-mide.core.registry.ServerRegistry.prototype.saveComponent = function(id, model, implementation, data, success, error) {
-	var self = this,
-		descr = this.getDescriptor_(id, model, implementation, data),
-		id = descr.getId();
-	 
-	if(id) {
 		mide.core.net.makeRequest({
-			url:  self.components_url + id,
-			method: 'PUT',
-			data: {
-				id: descr.getId(),
-				model: descr.getModel(),
-				implementation: descr.getImplementation(),
-				data: JSON.stringify(descr.getData())
-			},
-			success: function() {
-					self.componentDescriptors_[id] = descr;
-					self.componentsArray_ = [];
-					self.userComponentsArray_ = [];
-				success(descr);
+			url:  this.components_url + id,
+			responseFormat: 'json',
+			context: this,
+			success: function(response) {
+				try {
+					var descr = this.options.component_mapper.getDescriptor(id, response.model, response.metaData);
+					this.componentDescriptors_[id] = descr;
+					success(descr);
+				}
+				catch(e) {
+					error(e);
+				}
+				
 			},
 			error: error
 		});
@@ -185,7 +134,31 @@ mide.core.registry.ServerRegistry.prototype.saveComponent = function(id, model, 
 };
 
 /**
- * @overwrite
+ * @override
+ */
+mide.core.registry.ServerRegistry.prototype.saveComponent = function(descriptor, metaData, success, error) {
+	mide.core.net.makeRequest({
+		url:  this.components_url + descriptor.getId(),
+		method: 'PUT',
+		dataType: 'application/json',
+		data: JSON.stringify({
+			id: descriptor.getId(),
+			model: this.options.component_mapper.serialize(descriptor),
+			metaData: metaData,
+		}),
+		context: this,
+		success: function() {
+			this.componentDescriptors_[descriptor.getId()] = descriptor;
+			this.componentsArray_ = [];
+			this.userComponentsArray_ = [];
+			success(descriptor);
+		},
+		error: error
+	});
+};
+
+/**
+ * @override
  */
 mide.core.registry.ServerRegistry.prototype.deleteComponent = function(id, success, error) {
 	var self = this;
@@ -254,9 +227,8 @@ mide.core.registry.ServerRegistry.prototype.getUserCompositions = function(succe
 };
 
 mide.core.registry.ServerRegistry.prototype.getComposition = function(id, success, error) {
-	var self = this;
-	if(self.compositions[id]) {
-		this.options.composition_mapper.getComposition(id, self.compositions[id].model, self.compositions[id].data, function(composition) {
+	if(this.compositions[id]) {
+		this.options.composition_mapper.getComposition(id, this.compositions[id].model, this.compositions[id].metaData, function(composition) {
 			success(composition);
 		});
 		return;
@@ -264,10 +236,12 @@ mide.core.registry.ServerRegistry.prototype.getComposition = function(id, succes
 	mide.core.net.makeRequest({
 		url: this.compositions_url + id,
 		method: 'GET',
-		success: function(text, e) {
-			var c = e.target.getResponseJson();
-			self.options.composition_mapper.getComposition(id, c.model, c.data, function(composition) {
-				self.compositions[id] = c;
+		responseFormat: 'json',
+		context: this,
+		success: function(response) {
+			var self = this;
+			this.options.composition_mapper.getComposition(id, response.model, response.metaData, function(composition) {
+				self.compositions[id] = {model: response.model, metaData: response.metaData};
 				success(composition);
 			});
 		},
@@ -276,20 +250,21 @@ mide.core.registry.ServerRegistry.prototype.getComposition = function(id, succes
 };
 
 
-mide.core.registry.ServerRegistry.prototype.createComposition = function(model, data, success, error) {
-    var self = this;
+mide.core.registry.ServerRegistry.prototype.createComposition = function(composition, data, success, error) {
+	var serializedComposition = this.options.composition_mapper.serialize(composition);
 	mide.core.net.makeRequest({
 		url: this.compositions_url,
 		method: 'POST',
-		data: {model: model, data: goog.json.serialize(data)},
+		data: goog.json.serialize({model: serializedComposition, metaData: data}),
+		dataType: 'application/json',
+		context: this,
 		complete: function(id, e) {
 			if(e.target.getStatus() === 201) {
-				self.options.composition_mapper.getComposition(id, model, data, function(composition) {
-					self.compositions[id] = {id: id, model: model, data: data};
-					self.userCompositionsArray_ = [];
-					self.compositionsArray_ = [];
-					success(id);
-				});
+				composition.setId(id);
+				this.compositions[id] = {model: serializedComposition, data: data};
+				this.userCompositionsArray_ = [];
+				this.compositionsArray_ = [];
+				success(id);
 			}
 			else {
 				error: error
@@ -300,19 +275,20 @@ mide.core.registry.ServerRegistry.prototype.createComposition = function(model, 
 };
 
 
-mide.core.registry.ServerRegistry.prototype.saveComposition = function(id, model, data, success, error) {
-	var self = this;
+mide.core.registry.ServerRegistry.prototype.saveComposition = function(composition, data, success, error) {
+	var serializedComposition = this.options.composition_mapper.serialize(composition),
+		id = composition.getId();
 	mide.core.net.makeRequest({
-		url: this.compositions_url + id,
+		url: this.compositions_url + composition.getId(),
 		method: 'PUT',
-		data: {model: model, data: goog.json.serialize(data)},
+		data: goog.json.serialize({model: serializedComposition, metaData: data}),
+		dataType: 'application/json',
+		context: this,
 		success: function(text, e) {
-			self.options.composition_mapper.getComposition(id, model, data, function(composition) {
-				self.compositions[id] = {id: id, model: model, data: data};
-				self.userCompositionsArray_ = [];
-				self.compositionsArray_ = [];
-				success(id);
-			});
+			this.compositions[id] = {model: serializedComposition, data: data};
+			this.userCompositionsArray_ = [];
+			this.compositionsArray_ = [];
+			success(id);
 		},
 		error: error
 	});

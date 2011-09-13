@@ -4,42 +4,32 @@ goog.require('mide.mapper.ComponentMapper');
 goog.require('mide.parser')
 
 goog.require('goog.array');
+goog.require('goog.dom.xml');
 
 /**
  * Converter for Extended Mashart Definition Language
  * 
  * @implements mide.mapper.ComponentMapper
  */
-mide.mapper.EMDLMapper = function(processorProvider) {
-	this.processorProvider = processorProvider;
+mide.mapper.EMDLMapper = function(config) {
+	this.config = config;
+	
+	// cross-browser XML serializer
+	if( !window.XMLSerializer ){
+		window.XMLSerializer = function(){};
+		window.XMLSerializer.prototype.serializeToString = function( XMLObject ){
+			return XMLObject.xml || '';
+		};
+	}
 };
 
 /**
  * @override
  */
-mide.mapper.EMDLMapper.prototype.getDescriptor = function(id, model, implementation, data) {
-	var events = [],
-		operations = [],
-		parameters = [];
+mide.mapper.EMDLMapper.prototype.getDescriptor = function(id, serialized, data) {
+	var decoded = JSON.parse(serialized);
 	
-	data = data || {};
-	var root = this.parseXML(model);
-	var descr = new mide.core.ComponentDescriptor();
-	descr.setMapper(this);
-	
-	descr.setId(root['@'].id || id);
-	descr.setModel(model);
-	descr.setImplementation(implementation);
-	descr.setData(data);
-	descr.setData('name', root['@'].name || '');
-	descr.setData('description', (root.description && root.description[0]['#text']) || '');
-	
-	descr.setOperations(this.getOperations(root));
-	descr.setEvents(this.getEvents(root));
-	descr.setParameters(this.getParameters(root));
-	descr.setRequests(this.getRequests(root));
-	
-	return descr;
+	return this.fillDescriptor_(new mide.core.ComponentDescriptor(), decoded.model, decoded.implementation, data);
 };
 
 
@@ -49,12 +39,128 @@ mide.mapper.EMDLMapper.prototype.getDescriptor = function(id, model, implementat
 mide.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_config) {
 	var instance = new mide.core.Component(descriptor, opt_id, opt_config);
 	
-	var f = new Function("exports", descriptor.getImplementation());
+	var f = new Function("exports", descriptor.getData('implementation'));
 	f(instance);
-	if(this.processorProvider) {
-		instance.setProcessorManager(this.processorProvider.getProcessorManager(instance));
+	if(this.config.processorProvider) {
+		instance.setProcessorManager(this.config.processorProvider.getProcessorManager(instance));
 	}
 	return instance;
+};
+
+/**
+ * @override
+ */
+mide.mapper.EMDLMapper.prototype.serialize = function(descriptor) {
+	return JSON.stringify({
+		model: descriptor.getData('model'),
+		implementation: descriptor.getData('implementation')
+	});
+};
+
+/**
+ * @override
+ */
+mide.mapper.EMDLMapper.prototype.validate = function(descriptor, valid, invalid) {
+	var data = descriptor.getData();
+		model = data.model,
+		implementation = data.implementation,
+		errors = [];
+	
+	try {
+		var doc = goog.dom.xml.loadXml(model),
+			component = doc.getElementsByTagName('component')[0];
+		
+		// update model
+		if(!data.id && !component.hasAttribute('id')) {
+			error.push('The component needs a full qualified name as ID.');
+		}
+		else {
+			doc = this.updateXmlWithData_(doc, data);
+			// update descriptor
+			this.fillDescriptor_(descriptor, (new XMLSerializer()).serializeToString(doc), implementation);
+		}
+	}
+	catch(e) {
+		errors.push('Parse error:' + e);
+	}
+	
+	if(errors.length > 0) {
+		invalid(errors);
+	}
+	else {
+		valid(descriptor);
+	}
+};
+
+/**
+ * @private
+ */
+mide.mapper.EMDLMapper.prototype.updateXmlWithData_ = function(doc, data) {
+	var component = doc.getElementsByTagName('component')[0];
+	
+	// update the XML
+	if(data.id) {
+		component.setAttribute('id', data.id);
+	}
+	
+	if(data.name) {
+		component.setAttribute('name', data.name);
+	}
+	
+	if(data.description) {
+		// find description tag
+		var description = component.firstChild;
+		
+		while(description && description.nodeName.toLowerCase() !== 'description') {
+			description = description.nextSibling;
+		}
+		
+		if(description) {
+			// clear it
+			while(description.firstChild) {
+				description.firstChild.parentNode.removeChild(description.firstChild);
+			}
+		}
+		else {
+			// create new element
+			description = doc.createElement('description');
+			var before = doc.firstChild;
+			component.insertBefore(doc.createTextNode('\n'), before);
+			component.insertBefore(description, before);
+		}
+		description.appendChild(doc.createTextNode(data.description));
+	}
+	
+	return doc;
+};
+
+
+/**
+ * @private
+ */
+mide.mapper.EMDLMapper.prototype.fillDescriptor_ = function(descriptor, model, implementation, data) {
+	var events = [],
+		operations = [],
+		parameters = [];
+		root = this.parseXML(model);
+		
+	data = data || {};
+	
+	descriptor.setMapper(this);
+	
+	descriptor.setId(root['@'].id);
+	descriptor.setData(data);
+	descriptor.setData('name', root['@'].name || data.name || '');
+	descriptor.setData('description', (root.description && root.description[0]['#text']) || data.description || '');
+	descriptor.setData('implementation', implementation || '');
+	descriptor.setData('model', model || '');
+	
+	descriptor.setOperations(this.getOperations(root));
+	descriptor.setEvents(this.getEvents(root));
+	descriptor.setParameters(this.getParameters(root));
+	descriptor.setRequests(this.getRequests(root));
+	
+	return descriptor;
 };
 
 /**

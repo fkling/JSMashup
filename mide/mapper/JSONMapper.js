@@ -24,9 +24,7 @@ goog.inherits(mide.mapper.JSONMapper, mide.mapper.CompositionMapper);
  */
 mide.mapper.JSONMapper.prototype.getComposition = function(id, model, data, callback) {
 	var self = this;
-	if(goog.isString(model)) {
-		model = goog.json.parse(model);
-	}
+	model = goog.json.parse(model);
 	
 	var composition = new mide.core.Composition();
 	var max_instances = model.components.length,
@@ -34,8 +32,8 @@ mide.mapper.JSONMapper.prototype.getComposition = function(id, model, data, call
 		instances = [];
 	
 	composition.setId(id);
-	composition.setModel(goog.json.serialize(model));
 	composition.setData(data);
+	composition.setData(model.data);
 	
 	function runWhenFinished() {
 		if(num_instances === max_instances) {
@@ -61,4 +59,31 @@ mide.mapper.JSONMapper.prototype.getComposition = function(id, model, data, call
 			});
 		}(i, model.components[i]));
 	}
+};
+
+
+mide.mapper.JSONMapper.prototype.serialize = function(composition) {
+	var model = {
+			components: [],
+			connections: [],
+			data: {}
+	};
+	
+	
+	var components = composition.getComponents();
+	
+	
+	for( i = 0 ; i < components.length ; i++) {
+		var component =  components[i];
+		model.components.push({
+			instance_id:  component.getId(),
+			component_id: component.getDescriptor().getId(),
+			config: component.getConfiguration()
+		});
+	}
+	
+	model.connections = composition.getConnections();
+	model.data = composition.getData();
+	
+	return goog.json.serialize(model);
 };
