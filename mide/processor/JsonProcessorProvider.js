@@ -20,13 +20,22 @@ goog.inherits(mide.processor.JsonProcessorProvider, mide.processor.ProcessorProv
 mide.processor.JsonProcessorProvider.prototype.getProcessorManagerInternal_ = function(cid) {
 	var processors = [];
 	if(cid in this.config) {
-		var p_ = this.config[cid];
-		for(var i = 0, l = p_.length; i < l; i++) {
-			var Class = goog.getObjectByName(p_[i].type);
-			if(Class) {
-			    processors.push(new Class(p_[i].config));
-			}
-		}
+		this.addProcessors_(this.config[cid], processors)
+	}
+	if(this.config['*']) { // global processors
+		this.addProcessors_(this.config['*'], processors);
 	}
 	return processors;
+};
+
+/**
+ * @private
+ */
+mide.processor.JsonProcessorProvider.prototype.addProcessors_ = function(config, processors) {
+	for(var i = 0, l = config.length; i < l; i++) {
+		var Class = goog.getObjectByName(config[i].type);
+		if(Class) {
+		    processors.push(new Class(config[i].config));
+		}
+	}
 };

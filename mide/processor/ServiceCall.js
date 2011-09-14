@@ -178,7 +178,7 @@ org.reseval.processor.ServiceCall.prototype.perform = function(operation, params
 				this.data[operation].cacheKey = response.cacheKey;
 				this.data[operation].dataObject = response.dataObject;
 				if(config.passthrough) {
-					next(response.dataObject);
+					next(response.dataObject || {});
 				}
 			},
 			error: function(txt, e) {
@@ -187,7 +187,7 @@ org.reseval.processor.ServiceCall.prototype.perform = function(operation, params
 		});
 	}
 	else {
-		next(params.dataObject);
+		next(params);
 	}
 };
 
