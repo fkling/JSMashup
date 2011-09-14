@@ -23,6 +23,7 @@ mide.mapper.CompositionMapper.prototype.registry = null;
  * @param {string} id
  * @param {string} model
  * @param {Object} data
+ * @param {function} callback
  * @return {mide.core.Composition}
  * 
  * @public
