@@ -62,12 +62,6 @@ mide.core.ComponentDescriptor.prototype.events = null;
 mide.core.ComponentDescriptor.prototype.parameters = null;
 
 
-
-mide.core.ComponentDescriptor.prototype.setProcessorProvider = function(p) {
-	this.processorProvider = p;
-};
-
-
 /**
  * Set the mapper with which this instance was created
  * Set the XML model file. All information about a component are parsed
@@ -81,18 +75,6 @@ mide.core.ComponentDescriptor.prototype.setMapper = function(mapper) {
 	this.mapper = mapper;
 };
 
-mide.core.ComponentDescriptor.prototype.setModel = function(model) {
-	this.model = model;
-};
-
-/**
- * @return {mide.mapper.ComponentMapper}
- * @return {Object|string}
- * @public
- */
-mide.core.ComponentDescriptor.prototype.getModel = function() {
-	return this.model;
-};
 
 /**
  * Sets the implementation of the component.
@@ -102,18 +84,6 @@ mide.core.ComponentDescriptor.prototype.getModel = function() {
  */
 mide.core.ComponentDescriptor.prototype.getMapper = function() {
 	return this.mapper;	
-};
-
-mide.core.ComponentDescriptor.prototype.setImplementation = function(implementation) {
-	this.implementation = implementation;
-};
-
-/**
- * @return {string}
- * @public
- */
-mide.core.ComponentDescriptor.prototype.getImplementation = function() {
-	return this.implementation;
 };
 
 /**
@@ -130,16 +100,53 @@ mide.core.ComponentDescriptor.prototype.setId = function(id) {
 	this.id = id;
 };
 
+/**
+ * Returns the operation with the given name (if any).
+ * 
+ * @param {string} name
+ * @return {?mide.component.Operation}
+ * 
+ * @public
+ */
+mide.core.ComponentDescriptor.prototype.getOperation = function(name) {
+	return goog.array.find(this.operations, function(op){
+		return op.getRef() === name;
+	});
+};
+
 
 /**
- * @return {Object} a map of mide.core.Operation 
+ * @return {Array} a list of mide.component.Operation 
  */
 mide.core.ComponentDescriptor.prototype.getOperations = function() {
 	return this.operations;
 };
 
+
 /**
- * @return {Object} a map of mide.core.Event
+ * Returns the event with the given name (if any).
+ * 
+ * @param {string} name
+ * @return {?mide.component.Event}
+ * 
+ * @public
+ */
+mide.core.ComponentDescriptor.prototype.getEvent = function(name) {
+	var event =  goog.array.find(this.events, function(event){
+		return event.getRef() === name;
+	});
+	
+	if(!event) {
+		event = goog.array.find(this.operations, function(operation){
+			return operation.getRef() === name && operation.getOutputs().length > 0;
+		});
+	}
+	return event;
+};
+
+
+/**
+ * @return {Array} a list of mide.component.Event
  */
 mide.core.ComponentDescriptor.prototype.getEvents = function() {
 	return this.events;

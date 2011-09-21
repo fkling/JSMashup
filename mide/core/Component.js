@@ -11,6 +11,11 @@ goog.require('goog.array');
 goog.require('goog.object');
 
 
+/**
+ * This class contains all the runtime logic for components. 
+ * 
+ * 
+ */
 mide.core.Component = function(componentDescriptor, opt_id, opt_config) {
 	goog.base(this);
 	this.Events = mide.core.Component.Events;
@@ -139,13 +144,26 @@ mide.core.Component.prototype.getComposition = function() {
 };
 
 
+/**
+ * @param {mide.processor.ProcessorManager} manager
+ * 
+ * @public
+ */
 mide.core.Component.prototype.setProcessorManager = function(manager) {
 	this.processorManager = manager;
 };
 
-mide.core.Component.prototype.getProcessorManager = function() {
-	return this.processorManager;
+
+/**
+ * Returns the list of data processors for this component
+ * 
+ * @return {Array}
+ * @public
+ */
+mide.core.Component.prototype.getDataProcessors = function() {
+	return this.processorManager.getDataProcessors();
 };
+
 
 /**
  * @param {Object}
@@ -161,6 +179,7 @@ mide.core.Component.prototype.getData = function(key) {
 	return this.descriptor.getData(key);
 };
 
+
 /**
  * Gets the content node of the component.
  * 
@@ -169,33 +188,17 @@ mide.core.Component.prototype.getData = function(key) {
  * @private
  */
 mide.core.Component.prototype.getContentNode = function() {
-	if(!this.element_) {
-		var div = this.element_ = document.createElement('div'),
-		content = this.getContentNodeInternal();
-		if(content) {
-			div.appendChild(content);
-		}
-	}
-	return this.element_;
+	return null;
 };
 
 /**
- * Has to be overridden by the implementation
+ * Gets the content node of the component.
  * 
- * @protected
- */
-mide.core.Component.prototype.getContentNodeInternal = function() {
-	
-};
-
-
-/**
+ * @return {?Element}
  * 
- * @public
+ * @private
  */
-mide.core.Component.prototype.hasContent = function() {
-	var node = this.getContentNode();
-	return node.children.length > 0;
+mide.core.Component.prototype.update = function() {
 };
 
 
@@ -230,20 +233,20 @@ mide.core.Component.prototype.setConfiguration = function(config) {
  * @param {Object.<string, ?>} params parameters
  * @public
  */
-mide.core.Component.prototype.perform = function(operation, data) {
+mide.core.Component.prototype.perform = function(operation, message) {
 	var op = this.operationManager.getOperation(operation),
 		self = this;
 	if(op) {	
 		// record operation in history
-		this.operationManager.record(operation, data);
+		this.operationManager.record(operation, message);
 		
 		if(this.operationManager.hasUnresolvedDependencies(operation)) {
 			return;
 		}
 		else {
 			this.publish(mide.core.Component.Events.OPSTART, this, operation);
-			this.processorManager.perform(operation, data, function(opertion, data) {
-				self.performInternal(operation, data);
+			this.processorManager.perform(operation, message, function(opertion, message) {
+				self.performInternal(operation, message.body);
 			});
 		}
 	}
@@ -261,43 +264,43 @@ mide.core.Component.prototype.perform = function(operation, data) {
  * @param {Object.<string, ?>} params parameters
  * @private
  */
-mide.core.Component.prototype.performInternal = function(operation, data) {
+mide.core.Component.prototype.performInternal = function(operation, message_body) {
 	var op = this.operationManager.getOperation(operation),
 		func;
 	
-	if(op.isInputValid(data)) {
-		var self = this;
-		func = this['op_' + operation];
-		
-		// if the operation is synchronous or there is no implemented method,  
-		// we can mark the operation is finished automatically
-		if(!op.isAsync() || !func) {
-			var old_func = func || function(){};
-			func = function(data) {
-				old_func.call(this, data);
-				this.markOperationAsFinished(operation);
-				this.triggerEvent(operation, data);
-			};
-		}
-		
-		// If there is a request which should be run automatically,
-		// we run it before the actual operation
-		
-		var request = goog.object.findKey(this.requests, function(value) {
-			return value.runsOn === operation;
-		});
-		
-		if(request) {	
-			this.makeRequest(request, null, null, null, goog.bind(func, this, data), data);
-		}
-		else {
-			func.call(this, data);	
-		}
-		
+	var self = this;
+	func = this['op_' + operation];
+
+	// if the operation is synchronous or there is no implemented method,  
+	// we can mark the operation is finished automatically
+	if(!op.isAsync() || !func) {
+		var old_func = func || function(){};
+		func = function(message_body) {
+			old_func.call(this, message_body);
+			this.markOperationAsFinished(operation);
+			this.triggerEvent(operation, message_body);
+		};
+	}
+
+	// If there is a request which should be run automatically,
+	// we run it before the actual operation
+
+	var request = goog.object.findKey(this.requests, function(value) {
+		return value.runsOn === operation;
+	});
+
+	if(request) {	
+		this.makeRequest(request, null, null, null, goog.bind(func, this, message_body), message_body);
 	}
 	else {
-		throw new Error('[Operation call error] Operation {' + operation + '}: Missing parameter(s)');
+		try {
+			func.call(this, message_body);	
+		}
+		catch (e) {
+			this.triggerError(operation, e);
+		}
 	}
+		
 };
 
 
@@ -318,14 +321,17 @@ mide.core.Component.prototype.markOperationAsFinished = function(operation) {
  * @param {Object} params
  * @protected
  */
-mide.core.Component.prototype.triggerEvent = function(event, data) {
+mide.core.Component.prototype.triggerEvent = function(event, message_body) {
 	var self = this;
-	if(goog.isString(data)) {
-		data = JSON.parse(data);
+	if(goog.isString(message_body)) {
+		message_body = JSON.parse(message_body);
 	}
-	
-	this.processorManager.triggerEvent(event, data, function(event, data) {
-		self.triggerEventInternal(event, data);
+	var message = {
+		header: {},
+		body: message_body
+	}
+	this.processorManager.triggerEvent(event, message, function(event, message) {
+		self.triggerEventInternal(event, message);
 	});
 };
 
@@ -336,8 +342,8 @@ mide.core.Component.prototype.triggerEvent = function(event, data) {
  * @param {Object} params
  * @private
  */
-mide.core.Component.prototype.triggerEventInternal = function(name, params) {
-	this.publish(mide.core.Component.Events.EVENT, this, name, params);
+mide.core.Component.prototype.triggerEventInternal = function(name, message) {
+	this.publish(mide.core.Component.Events.EVENT, this, name, message);
 };
 
 
@@ -364,22 +370,29 @@ mide.core.Component.prototype.triggerError = function(name, msg) {
  * @param {string} url
  * @param {Object.<string, string>} getData - GET data mapping
  * @param {Object.<string, string>} postData - POST data mapping
- * @param {function(Object)} cb - function beeing called upon request complication.
- * 									The argument passed is the parsed JSON response.
+ * @param {function(Object)} cb - function being called upon request complication.
+ * 									The argument passed is the response text.
  * 
  * @private
  */
 
-mide.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb, op_data) {
+mide.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb, message_body) {
 	if(this.requests[name]) {
+		
+		// passed parameters are evaluated against the configuration parameters and the data received from
+		// an operation
 		var context = {};
-		goog.object.extend(context, this.configurationDialog.getValues(), op_data || {});
+		goog.object.extend(context, this.configurationDialog.getValues(), message_body || {});
+		
+		
+		// prepare GET parameters
 		if(this.requests[name].parameters) {
 			var parameters = mide.util.OptionMap.get(this.requests[name].parameters, null, context);
 			goog.object.extend(parameters, getData || {});
 			getData = parameters
 		}
 		
+		// prepare POST parameters
 		if(this.requests[name].data) {
 			if(!postData) {
 				postData = this.requests[name].data;
@@ -391,18 +404,24 @@ mide.core.Component.prototype.makeRequest = function(name, url, getData, postDat
 			}
 		}
 		
+		// set and parse URL if configured
 		if(this.requests[name].url && !url) {
 			url = mide.util.OptionMap.get({url: this.requests[name].url}, 'url', context);
 		}
 		
+		// if the request should trigger an event at completion, override callback
 		if(this.requests[name].triggers) {
 			cb = function(data) {
 				this.markOperationAsFinished(name);
+				if(goog.isString(data)) {
+					data = JSON.parse(data);
+				}
 				this.triggerEvent(this.requests[name].triggers, data);
 			};
 		}
 	}
 	
+
 	if(url) {
 		this.publish(mide.core.Component.Events.OPSTART, this, name);
 		var config = {

@@ -14,7 +14,7 @@ mide.processor.ProcessorManager = function(component, processors) {
 };
 
 
-mide.processor.ProcessorManager.prototype.getProcessors = function() {
+mide.processor.ProcessorManager.prototype.getDataProcessors = function() {
 	return this.processors;
 };
 

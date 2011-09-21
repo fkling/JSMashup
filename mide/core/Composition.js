@@ -260,23 +260,23 @@ mide.core.Composition.prototype.run = function() {
  */
 mide.core.Composition.prototype.connect = function(source, event, target, operation, isSource){
 	if(isSource !== false) {
-		if(!goog.isString(source)) {
-			source = source.getId();
-		}
-		if(!goog.isString(target)) {
-			target = target.getId();
-		}
+		var sourceId = source.getId(),
+			targetId = target.getId();
 		
-		var src_connections = this.connections[source] || (this.connections[source] = {}),
+		var src_connections = this.connections[sourceId] || (this.connections[sourceId] = {}),
 		    event_connections = src_connections[event] || (src_connections[event] = []);
 	
 		// don't connect twice
-	    if(goog.array.some(event_connections, function(c) {return c.target === target && c.op === operation;})) {
+	    if(goog.array.some(event_connections, function(c) {return c.target === targetId && c.op === operation;})) {
 	        return;
 	    }
-	    event_connections.push({target: target, op: operation});
-	    var connected = this.connected_map[target] || (this.connected_map[target] = {});
+	    event_connections.push({target: targetId, op: operation});
+	    var connected = this.connected_map[targetId] || (this.connected_map[targetId] = {});
 	    connected[operation] = true;
+	    
+	    if(mide.core.Composition.argumentMapper) {
+	    	mide.core.Composition.argumentMapper.createMapping(source, event, target, operation);
+	    }
 	}
 };
 
@@ -288,23 +288,23 @@ mide.core.Composition.prototype.connect = function(source, event, target, operat
  */
 mide.core.Composition.prototype.disconnect = function(source, event, target, operation, isSource){
 	if(isSource !== false) {
-		if(!goog.isString(source)) {
-			source = source.getId();
-		}
-		if(!goog.isString(target)) {
-			target = target.getId();
-		}
+		var sourceId = source.getId(),
+		targetId = target.getId();
 		
-	    if(this.connections[source] && this.connections[source][event]) {
-	        var event_connections = this.	connections[source][event];
+	    if(this.connections[sourceId] && this.connections[sourceId][event]) {
+	        var event_connections = this.connections[sourceId][event];
 	        for(var i = event_connections.length; i--; ) {
 	            var connection = event_connections[i];
-	            if(connection.target === target && connection.op === operation) {
-	            	this.connected_map[target][operation] = false;
+	            if(connection.target === targetId && connection.op === operation) {
+	            	this.connected_map[targetId][operation] = false;
 	                event_connections.splice(i, 1);
 	                break; // there can only be one
 	            }
 	        }
+	    }
+	    
+	    if(mide.core.Composition.argumentMapper) {
+	    	mide.core.Composition.argumentMapper.removeMapping(source, event, target, operation);
 	    }
 	}
 };
@@ -364,7 +364,7 @@ mide.core.Composition.prototype.onOperationEnd_ = function(component, operation)
  * 
  * @private
  */
-mide.core.Composition.prototype.onEventTrigger_ = function(source, event, parameters) {
+mide.core.Composition.prototype.onEventTrigger_ = function(source, event, message) {
 	var srcId = goog.isString(source) ? source : source.getId(),
 		self = this;
 	
@@ -372,9 +372,29 @@ mide.core.Composition.prototype.onEventTrigger_ = function(source, event, parame
      && this.connections[srcId][event].length > 0) {
          goog.array.forEach(this.connections[srcId][event], function(connection) {
         	 setTimeout(function() {
-             	 //create a copy of the parameters
-        		 self.components[connection.target].perform(connection.op, JSON.parse(JSON.stringify(parameters)));
+             	 
+        		 //create a copy of the parameters
+        		 var message_copy = JSON.parse(JSON.stringify(message));
+        		 
+        		 //map input data
+        		 if(mide.core.Composition.argumentMapper) {
+        			 message_copy.body = mide.core.Composition.argumentMapper.map(source, event, self.components[connection.target], connection.op,  message_copy.body);
+        		 }
+        		 
+        		 self.components[connection.target].perform(connection.op, message_copy);
         	 }, 10);        
          });
      }
+};
+
+
+/**
+ * Sets the object used to map incoming arguments in operations
+ * to the ones specified in the model. If no strategy is set,
+ * the arguments are just passed through.
+ * 
+ * @param {mide.component.ArgumentMapper} mapper 
+ */
+mide.core.Composition.setArgumentMapper = function(mapper) {
+	mide.core.Composition.argumentMapper = mapper;
 };

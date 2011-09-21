@@ -12,7 +12,7 @@ mide.processor.DataProcessor = function(config) {
 
 
 /**
- * Sets the instance this processor belongs to. Attaches
+ * Sets the instance this processor belongs to. Can be used to attach
  * event handlers to keep track of the component's state.
  * 
  * @param {mide.core.Component} component
@@ -25,8 +25,7 @@ mide.processor.DataProcessor.prototype.setComponent = function(component) {
 
 
 /**
- * Called upon an operation of the component. 
- * The configuration parameters are:
+ * Called upon an operation of the component.
  * 
  * @param {string} operation
  * @param {Object} params
@@ -72,10 +71,9 @@ mide.processor.DataProcessor.prototype.makeRequest = function(name, requestConfi
 
 
 /**
- * Get the possible trigger of an event
+ * Get the possible trigger of an event.
  * 
  * @param {string} event
- * 
  * @return {string}
  * 
  * @protected
@@ -101,6 +99,6 @@ mide.processor.DataProcessor.prototype.getEventTrigger = function(event) {
  * 
  * @public
  */
-mide.processor.DataProcessor.prototype.getContentNode = function() {
+mide.processor.DataProcessor.prototype.getContentElement = function() {
 	
 };

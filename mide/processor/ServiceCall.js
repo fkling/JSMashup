@@ -6,6 +6,8 @@ goog.require('mide.core.net');
 goog.require('mide.core.Session');
 goog.require('mide.core.Composition');
 goog.require('mide.core.Component');
+goog.require('mide.util.OptionMap');
+
 
 goog.require('goog.dom');
 goog.require('goog.events');
@@ -36,6 +38,15 @@ org.reseval.processor.ServiceCall = function(config) {
 };
 
 goog.inherits(org.reseval.processor.ServiceCall, mide.processor.DataProcessor);
+
+
+/**
+ * Key used to set and get the relevant data in the head of the message.
+ * 
+ * @private
+ */
+org.reseval.processor.ServiceCall.HEADER_NAME = 'org.reseval.processor.ServiceCall';
+
 
 /**
  * @public
@@ -90,7 +101,7 @@ org.reseval.processor.ServiceCall.prototype.onConnect_ = function(source, event,
 	if(isSource) {
 		// if the other component has no ServiceCall data processor and this component
 		// makes a service call for the action that triggers the event
-		if(!goog.array.some(target.getProcessorManager().getProcessors(), function(processor) {
+		if(!goog.array.some(target.getDataProcessors(), function(processor) {
 			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(operation);
 		}) && this.isConfiguredFor(trigger)) {
 			var config = this.data[trigger] || ( this.data[trigger] = {});
@@ -98,10 +109,11 @@ org.reseval.processor.ServiceCall.prototype.onConnect_ = function(source, event,
 		}
 	}
 	else { // otherwise we have to send data to the service
-		if(!goog.array.some(source.getProcessorManager().getProcessors(), function(processor) {
+		if(!goog.array.some(source.getDataProcessors(), function(processor) {
 			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(processor.getEventTrigger(event));
 		}) && this.isConfiguredFor(operation)) {
-			this.data[operation].sendData = true;
+			var config = this.data[operation] || ( this.data[operation] = {});
+			config.sendData = true;
 		}
 	}
 };
@@ -129,7 +141,8 @@ org.reseval.processor.ServiceCall.prototype.onDisconnect_ = function(source, eve
 		if(!goog.array.some(source.getProcessorManager().getProcessors(), function(processor) {
 			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(processor.getEventTrigger(event));
 		}) && this.isConfiguredFor(operation)) {
-			this.data[operation].sendData = false;
+			var config = this.data[operation] || ( this.data[operation] = {});
+			config.sendData = false;
 		}
 	}
 };
@@ -153,41 +166,70 @@ org.reseval.processor.ServiceCall.prototype.onDisconnect_ = function(source, eve
  *
  * @public
  */
-org.reseval.processor.ServiceCall.prototype.perform = function(operation, params, next) {
-	var config = this.config[operation];
-	
-	this.data[operation] = this.data[operation] || {};
-	this.data[operation].cacheKey = params.controlData && params.controlData.cacheKey || this.getKey(config);
+org.reseval.processor.ServiceCall.prototype.perform = function(operation, message, next) {
+	var config = this.config[operation],
+		header = message.header[org.reseval.processor.ServiceCall.HEADER_NAME] || {},
+		data = this.data[operation] = this.data[operation] || {},
+		key = data.cacheKey = this.getKey(config, data, header) || "";
 	
 	if(config && config.url) {
-		var parameters = {
-			key: this.data[operation].cacheKey
-		};
 		
-		if(this.data[operation].getData) {
-			parameters.data = 'yes';
-		}
-		
-		mide.core.net.makeRequest({
+		var requestConfig = {
 			url: config.url, 
-			parameters: parameters,
 			responseFormat: 'json',
 			context: this,
-			data: this.data[operation].sendData ? params.dataObject || params || {} : null,
 			success: function(response, e) {
 				this.data[operation].cacheKey = response.cacheKey;
-				this.data[operation].dataObject = response.dataObject;
+				var dataObject = response.dataObject || {};
+				delete dataObject.key;
+				
+				this.data[operation].message_body = dataObject;
+				
 				if(config.passthrough) {
-					next(response.dataObject || {});
+					next(message);
+				}
+				else {
+					this.component.markOperationAsFinished(operation);
+					this.component.triggerEvent(operation, dataObject);
 				}
 			},
 			error: function(txt, e) {
 				this.component.triggerError(operation, txt);
 			}
-		});
+		};
+		
+		
+		if(config.method === 'POST' || data.sendData) {
+			var post_data = {
+				key: key,
+				dataRequest: data.getData ? 'yes' : 'no',
+				mappersList: []
+			};
+			
+			if(data.sendData) {
+				for(var p in message.body) {
+					post_data.mappersList.push({paramName: p, paramValue: message.body[p]});
+				}
+			}
+			requestConfig.parameters = {};
+			requestConfig.data = JSON.stringify(post_data);
+			requestConfig.contentType = 'application/json';
+			requestConfig.method = "POST";
+		}
+		else {
+			requestConfig.parameters = {};
+			if(key) {
+				requestConfig.parameters.key = key;
+			}
+			if(data.getData) {
+				requestConfig.parameters.data = 'yes';
+			}
+		}
+		
+		mide.core.net.makeRequest(requestConfig);
 	}
 	else {
-		next(params);
+		next(message);
 	}
 };
 
@@ -198,21 +240,19 @@ org.reseval.processor.ServiceCall.prototype.perform = function(operation, params
  * 
  * @public
  */
-org.reseval.processor.ServiceCall.prototype.triggerEvent = function(event, params, next) {
-	var cacheKey = null, 
-	    dataObject = params,
+org.reseval.processor.ServiceCall.prototype.triggerEvent = function(event, message, next) {
+	var data = {},
+	    message_header = message.header[org.reseval.processor.ServiceCall.HEADER_NAME] || (message.header[org.reseval.processor.ServiceCall.HEADER_NAME] = {})	,
 	    trigger = this.getEventTrigger(event)
 	
 	if(trigger && this.data[trigger]) {
-		cacheKey = this.data[trigger].cacheKey;
-		if(!this.data[trigger].getData) {
-			params = {
-					controlData: {cacheKey: cacheKey},
-					dataObject: this.data[trigger].dataObject || params
-			};
+		data = this.data[trigger];
+		message_header.cacheKey = data.cacheKey;
+		if(data.message_body && this.config[trigger].overwrite) {
+			message.body = data.message_body;
 		}
 	}
-	next(params);
+	next(message);
 };
 
 /**
@@ -225,7 +265,7 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
 	
 	if(config && config.url) {
 		var data = this.data[name] = this.data[name] || {};
-		var key = this.data[name].cacheKey = this.getKey(config);
+		var key = this.data[name].cacheKey = this.getKey(config, data);
 		
 		requestConfig.url = config.url;
 		if(config.method === 'POST') {
@@ -234,10 +274,19 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
 				dataRequest: data.getData ? 'yes' : 'no',
 				mappersList: []
 			};
-			for(var p in (requestConfig.parameters || {})) {
-				if(requestConfig.parameters[p])
-					post_data.mappersList.push({paramName: p, paramValue: requestConfig.parameters[p]});
+			
+			if(config.data) {
+				for(var i = 0, l = config.data.length; i < l; i++) {
+					post_data.mappersList.push(mide.util.OptionMap.get(config.data[i], null, requestConfig.parameters));
+				}
 			}
+			else {
+				for(var p in (requestConfig.parameters || {})) {
+					if(requestConfig.parameters[p] !== '')
+						post_data.mappersList.push({paramName: p, paramValue: requestConfig.parameters[p]});
+				}
+			}
+			
 			requestConfig.parameters = {};
 			requestConfig.data = JSON.stringify(post_data);
 			requestConfig.contentType = 'application/json';
@@ -266,8 +315,9 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
 			if(response.cacheKey) {
 				this.data[name].cacheKey = response.cacheKey;
 			}
-			this.data[name].dataObject = response.dataObject;
-			if(orig_success) orig_success.call(orig_context, JSON.stringify(response.dataObject), e);
+			this.data[name].dataObject = response.dataObject || {};
+			delete this.data[name].dataObject.key;
+			if(orig_success) orig_success.call(orig_context, JSON.stringify(this.data[name].dataObject), e);
 		};
 		requestConfig.error = function() {
 			if(orig_error) orig_error.apply(orig_context, arguments);
@@ -282,10 +332,18 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
  * 
  * @private
  */
-org.reseval.processor.ServiceCall.prototype.getKey = function(config) {
+org.reseval.processor.ServiceCall.prototype.getKey = function(config, data, header) {
 	var key = mide.core.Session.getInstance().getId() + this.component.getId() + this.n;
+	
+	if(data && data.cacheKey) {
+		key = data.cacheKey;
+	}
+	
+	if(header && header.cacheKey) {
+		key = header.cacheKey;
+	}
 	if(config && config.useKeyFrom) {
 		key = this.data[config.useKeyFrom].cacheKey || key;
 	}
-	return key;
+	return data.sendData ? null : key;
 };

@@ -5,6 +5,7 @@ goog.provide('MashupIDE');
 
 goog.require('mide.core.Session');
 goog.require('mide.core.registry.ServerRegistry');
+goog.require('mide.core.Composition');
 
 goog.require('goog.ui.Component');
 goog.require('goog.object');
@@ -30,6 +31,10 @@ MashupIDE = function(config) {
 	mide.core.Session.start();
 	
 	MashupIDE.config = config;
+	
+	if(config.argumentMapper) {
+		mide.core.Composition.setArgumentMapper(config.argumentMapper);
+	}
 };
 
 /**
@@ -126,7 +131,6 @@ MashupIDE.validateComponent = function(descriptor, valid, invalid) {
 MashupIDE.getEmptyComponentDescriptor = function() {
 	return new mide.core.ComponentDescriptor();
 };
-
 
 /**
  * Gets a list of objects which represent a composition. Each object

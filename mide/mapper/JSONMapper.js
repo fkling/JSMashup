@@ -29,28 +29,33 @@ mide.mapper.JSONMapper.prototype.getComposition = function(id, model, data, call
 	var composition = new mide.core.Composition();
 	var max_instances = model.components.length,
 		num_instances = 0, 
-		instances = [];
+		instances = [],
+		instanceMap = {};
 	
 	composition.setId(id);
-	composition.setData(data);
 	composition.setData(model.data);
+	composition.setData(data);
 	
 	function runWhenFinished() {
 		if(num_instances === max_instances) {
 			composition.setComponents(instances);
+			
+			for(var i = model.connections.length; i--; ) {
+				var c = model.connections[i];
+				composition.addConnection(new mide.core.composition.Connection(instanceMap[c.source], c.event, instanceMap[c.target], c.operation));
+			}
+			
 			callback(composition);
 		}
 	};
 	
-	for(var i = model.connections.length; i--; ) {
-		var c = model.connections[i];
-		composition.addConnection(new mide.core.composition.Connection(c.source, c.event, c.target, c.operation));
-	}
+	
 	
 	for(var i = 0, l = model.components.length; i < l; i++ ) {
 		(function(index, definition) {
 			self.registry.getComponentDescriptorById(definition.component_id, function(descr) {
-				instances[index] = descr.getInstance(definition.instance_id, definition.config);
+				var instance =  descr.getInstance(definition.instance_id, definition.config);
+				instances[index] = instanceMap[instance.getId()] = instance;
 				num_instances++;
 				runWhenFinished();
 			}, function(){
