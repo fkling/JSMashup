@@ -193,18 +193,3 @@ mide.core.Operation.prototype.getData = function(key) {
 	}
 	return this.data;
 };
-
-
-/**
- * @param {Object} params
- * @public
- */
-mide.core.Operation.prototype.isInputValid = function(params) {
-	for(var i = this.inputs.length; i--; ) {
-		var input = this.inputs[i];
-		if(input.required && params.hasOwnProperty(input.ref)) {
-			return false;
-		} 
-	}
-	return true;
-};
