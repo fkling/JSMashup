@@ -298,7 +298,6 @@ mide.core.Composition.prototype.disconnect = function(source, event, target, ope
 	            if(connection.target === targetId && connection.op === operation) {
 	            	this.connected_map[targetId][operation] = false;
 	                event_connections.splice(i, 1);
-	                break; // there can only be one
 	            }
 	        }
 	    }

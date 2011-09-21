@@ -130,7 +130,7 @@ org.reseval.processor.ServiceCall.prototype.onConnect_ = function(source, event,
 org.reseval.processor.ServiceCall.prototype.onDisconnect_ = function(source, event, target, operation, isSource) {
 	var trigger = this.getEventTrigger(event);
 	if(isSource) {
-		if(!goog.array.some(target.getProcessorManager().getProcessors(), function(processor) {
+		if(!goog.array.some(target.getDataProcessors(), function(processor) {
 			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(operation);
 		}) && this.isConfiguredFor(trigger)) {
 			var config = this.data[trigger] || ( this.data[trigger] = {});
@@ -138,7 +138,7 @@ org.reseval.processor.ServiceCall.prototype.onDisconnect_ = function(source, eve
 		}
 	}
 	else {
-		if(!goog.array.some(source.getProcessorManager().getProcessors(), function(processor) {
+		if(!goog.array.some(source.getDataProcessors(), function(processor) {
 			return processor instanceof org.reseval.processor.ServiceCall && processor.isConfiguredFor(processor.getEventTrigger(event));
 		}) && this.isConfiguredFor(operation)) {
 			var config = this.data[operation] || ( this.data[operation] = {});
