@@ -41,7 +41,7 @@ jsm.ui.input.InputFactory.prototype.get = function(fqn, name, label, opt_options
     if(Input) {
     	return new Input(name, label, opt_options);
     }
-    return new jsm.ui.inputTextInput(name, label, opt_options);
+    return new jsm.ui.input.TextInput(name, label, opt_options);
     /*
     var proxy = new jsm.ui.input.ProxyInput(fqn, opt_ref, name, label, opt_options);
     proxy.setManager(jsm.module.ModuleManager.getInstance());
