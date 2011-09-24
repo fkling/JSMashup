@@ -3,7 +3,7 @@ goog.provide('jsm.ui.input.InputFactory');
 goog.require('jsm.ui.input.ProxyInput');
 goog.require('jsm.ui.input.Autocomplete');
 goog.require('jsm.ui.input.Dropdown');
-goog.require('jsm.ui.input.TexInput');
+goog.require('jsm.ui.input.TextInput');
 goog.require('jsm.module.ModuleManager');
 
 goog.require('goog.dom');
