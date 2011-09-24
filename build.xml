@@ -14,9 +14,19 @@
 
     <target name="init">
         <mkdir dir="${build}" />
+        <available file="tools/compiler.jar" property="compiler.present"/>
     </target>
 
-    <target name="compile" depends="init,get.closure">
+    <target name="get.compiler" depends="init" unless="compiler.present">
+        <echo>Downloading Google Closure Compiler...</echo>
+        <get src="http://closure-compiler.googlecode.com/files/compiler-latest.zip" dest="tools" />
+        <unzip src="tools/compiler-latest.zip" dest="tools">
+            <patternset includes="compiler.jar" />
+        </unzip>
+        <delete file="tools/compiler-latest.zip" />
+    </target>
+
+    <target name="compile" depends="init,get.closure,get.compiler">
         <exec executable="${goog}/closure/bin/build/closurebuilder.py" output="${build}/jsm.js" logError="yes">
             <arg value="--root=${goog}" />
             <arg value="--root=${jsm}" />
