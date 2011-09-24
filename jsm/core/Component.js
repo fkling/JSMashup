@@ -292,15 +292,12 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
 	if(request) {	
 		this.makeRequest(request, null, null, null, goog.bind(func, this, message_body), message_body);
 	}
-	else {
-		try {
-			func.call(this, message_body);	
-		}
-		catch (e) {
-			this.triggerError(operation, e);
-		}
+    try {
+        func.call(this, message_body);	
 	}
-		
+	catch (e) {
+		this.triggerError(operation, e);
+	}	
 };
 
 
@@ -328,7 +325,7 @@ jsm.core.Component.prototype.triggerEvent = function(event, message_body) {
 	}
 	var message = {
 		header: {},
-		body: message_body
+		body: message_body || {}
 	}
 	this.processorManager.triggerEvent(event, message, function(event, message) {
 		self.triggerEventInternal(event, message);

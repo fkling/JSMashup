@@ -115,8 +115,10 @@ jsm.core.DataTypeMapper.prototype.map = function(source, event, target, operatio
 	for(var source in mapping) {
 		if(source in data) {
 			var target = mapping[source];
-			tmp_data[target] = data[source];
-			replaced.push(source);
+            if(target !== source) {
+                tmp_data[target] = data[source];
+                replaced.push(source);
+            }
 		}
 	}
 	

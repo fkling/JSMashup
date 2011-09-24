@@ -154,7 +154,7 @@ jsm.core.Composition.prototype.getComponents = function(){
  * @param {Array} connections
  */
 jsm.core.Composition.prototype.addConnection = function(connection){
-	this.connect(connection.source, connection.event, connection.target, connection.operation);
+	connection.source.connect(connection.source, connection.event, connection.target, connection.operation);
 };
 
 
@@ -164,7 +164,7 @@ jsm.core.Composition.prototype.addConnection = function(connection){
 jsm.core.Composition.prototype.setConnections = function(connections){
 	for(var i = connections.length; i--; ) {
 		var connection = connections[i];
-		this.connect(connection.source, connection.event, connection.target, connection.operation);
+		this.addConnection(connection);
 	}
 };
 

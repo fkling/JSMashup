@@ -315,8 +315,8 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
 			if(response.cacheKey) {
 				this.data[name].cacheKey = response.cacheKey;
 			}
-			this.data[name].dataObject = response.dataObject || {};
-			delete this.data[name].dataObject.key;
+			this.data[name].message_body = response.dataObject || {};
+			delete this.data[name].message_body.key;
 			if(orig_success) orig_success.call(orig_context, JSON.stringify(this.data[name].dataObject), e);
 		};
 		requestConfig.error = function() {
