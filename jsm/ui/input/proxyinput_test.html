@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>JSMashupIDE Unit Tests - jsm.ui.input.ProxyInput</title>
+<script src="../../../google_closure/closure/goog/base.js"></script>
+<script src="../../deps.js"></script>
+<script>
+  goog.require('goog.testing.MockControl');
+  goog.require('goog.testing.MockClock');
+  goog.require('goog.testing.jsunit');
+  goog.require('goog.dom');
+  goog.require('goog.object');
+  goog.require('goog.events.EventTarget');
+  goog.require('jsm.ui.input.ProxyInput');
+</script>
+</head>
+<body>
+<script>
+  var clock,
+      fqn = "foo.bar.Test",
+      url = "http://google.com",
+      dummyInputElement = goog.dom.createDom('div', {id: 'dummy'});
+
+
+  function setUp() {
+	 clock = new goog.testing.MockClock(true);
+	 mockControl = new goog.testing.MockControl();
+  }
+  
+  function tearDown() {
+	  clock.dispose();
+  }
+  
+  function getDummyInput() {
+	  var constr = function() {};
+	  goog.inherits(constr, goog.events.EventTarget);
+	  goog.object.extend(constr.prototype, {
+	          renderInternal_: function() {
+	              return dummyInputElement;
+	          },
+	          setValue: function(value) {
+	              this.value_ = value;
+	          },
+	          getValue: function() {
+	              return value;
+	          }
+	  });
+	  return constr;
+  }
+  
+  function getSuccessfullManager(input) {
+	  return {
+		  load: function(module, url, cb) {
+			var path = module.substr(0, module.lastIndexOf('.')),
+			    name = module.substr(module.lastIndexOf('.') + 1);
+			
+			setTimeout(function(){
+				if(!goog.getObjectByName(path)) {
+					goog.provide(path);
+				}			
+				var i = goog.getObjectByName(path);
+				i[name] = input;
+				cb();
+			}, 3)  
+		  }
+	  };
+  }
+  
+  function getUnSuccessfullManager(input) {
+      return {
+          load: function(module, url, cb) {
+          }
+      };
+  }
+  
+  function testSetManger_successfullReplacement() {
+	   var proxy = new jsm.ui.input.ProxyInput(fqn, url);
+	   var elem = proxy.render();
+	   
+	   proxy.setManager(getSuccessfullManager(getDummyInput()));
+	   
+	   assertFalse(goog.dom.contains(elem, dummyInputElement));
+	   clock.tick(3);
+	   assertTrue(goog.dom.contains(elem, dummyInputElement));
+  }
+  
+  function testSetManger_successfullSetValue() {
+      var proxy = new jsm.ui.input.ProxyInput(fqn, url);
+      var elem = proxy.render();
+      var value1 = 'test';
+      var value2 = 'test2';     
+      var Dummy = getDummyInput();
+      Dummy.prototype.setValue = mockControl.createFunctionMock('setValue');      
+      Dummy.prototype.setValue(value1);
+      Dummy.prototype.setValue(value2);
+      mockControl.$replayAll();
+      
+      proxy.setManager(getSuccessfullManager(Dummy));
+      proxy.setValue(value1);
+      clock.tick(3);
+      proxy.setValue(value2);
+      
+      mockControl.$verifyAll();
+      mockControl.$resetAll();
+ }
+ 
+</script>
+</body>
+</html>

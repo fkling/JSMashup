@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>JSMashupIDE Unit Tests - jsm.ui.input.InputFactory</title>
+<script src="../../../google_closure/closure/goog/base.js"></script>
+<script src="../../deps.js"></script>
+<script>
+  goog.require('goog.testing.StrictMock');
+  goog.require('goog.testing.MockControl');
+  goog.require('goog.testing.jsunit');
+  goog.require('jsm.ui.input.ProxyInput');
+  goog.require('jsm.ui.input.InputFactory');
+</script>
+</head>
+<body>
+<script>
+  var foo;
+
+
+  function setUp() {
+	 mockControl = new goog.testing.MockControl();
+	 foo = {bar:{}};
+  }
+  
+  function tearDown() {
+	}
+  
+  function testGetInstance_call() {
+	   var factory = jsm.ui.input.InputFactory.getInstance();
+	   assert(!!factory);
+	   assert(factory === jsm.ui.input.InputFactory.getInstance());
+  }
+  
+  function testGet_existingInput() {
+	  var factory = jsm.ui.input.InputFactory.getInstance();
+	  foo.bar.Input = mockControl.createFunctionMock();
+	  var options = {foo: 'bar'},
+	      ret = {options: options};
+      foo.bar.Input('foo', 'bar', options).$does(function(options){ return ret});
+      mockControl.$replayAll();
+      
+      var f = factory.get('foo.bar.Input', 'foo', 'bar', options);
+      
+      assert(f === ret);
+      mockControl.$verifyAll();
+      mockControl.$resetAll();
+ }
+  
+  function testGet_notExistingInput() {
+      var factory = jsm.ui.input.InputFactory.getInstance();
+      jsm.ui.input.ProxyInput = mockControl.createFunctionMock();
+      var options = {foo: 'bar'},
+          ret = {setManager: function(){}},
+          url = 'foo';
+      jsm.ui.input.ProxyInput('foo.bar.Input', url, 'foo', 'bar', options).$does(function(name, url, options){ return ret});
+      mockControl.$replayAll();
+      
+      var f = factory.get('foo.bar.Input', 'foo', 'bar', options, url);
+      
+      assert(f === ret);
+      mockControl.$verifyAll();
+      mockControl.$resetAll();
+ }
+</script>
+</body>
+</html>

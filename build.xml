@@ -1,0 +1,64 @@
+<project name="JSMashup" default="dist" basedir=".">
+    <description>
+        Builds the JSMashup library. It will download the google closure
+        library if it does not exist.
+    </description>
+   
+    <property name="goog-svn" value="http://closure-library.googlecode.com/svn/trunk/" />
+
+    <property name="jsm" location="jsm" />
+    <property name="goog" location="build/google_closure" />
+    <property name="build" location="build" />
+    <property name="dist" location="dist" />
+    <property name="docs" location="docs" />
+
+    <target name="init">
+        <mkdir dir="${build}" />
+    </target>
+
+    <target name="compile" depends="init,get.closure">
+        <exec executable="${goog}/closure/bin/build/closurebuilder.py" output="${build}/jsm.js" logError="yes">
+            <arg value="--root=${goog}" />
+            <arg value="--root=${jsm}" />
+            <arg value="--namespace=jsm" />
+            <arg value="--output_mode=compiled" />
+            <arg value="--compiler_jar=tools/compiler.jar" />
+        </exec>
+    </target>
+    
+    <target name="dist" depends="compile">
+        <mkdir dir="${dist}" />
+        <copy file="${build}/jsm.js" todir="${dist}" />
+        <delete dir="${build}" />
+    </target>
+
+    <target name="get.closure" depends="closure.check" unless="closure.exists">
+        <exec executable="svn" dir="${build}">
+            <arg line="checkout ${goog-svn} google_closure" />
+        </exec>
+    </target>
+
+    <target name="update.closure" depends="closure.check" if="closure.exists">
+        <exec executable="svn" dir="${goog}">
+            <arg line="update" />
+        </exec>
+    </target>
+
+    <target name="closure.check">
+        <condition property="closure.exists">
+              <available file="${goog}" type="dir"/>
+        </condition>
+    </target>
+
+    <target name="build.docs">
+        <mkdir dir="${docs}"/>
+        <exec executable="jsdoc">
+            <arg line="-a -p -r=5 ${jsm} -d=${docs} -t=tool/templates/jsdoc" />
+        </exec>
+    </target>
+
+    <target name="clean">
+        <delete dir="${build}"/>
+        <delete dir="${dist}"/>
+    </target>
+</project>

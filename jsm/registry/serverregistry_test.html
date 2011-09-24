@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Closure Unit Tests - jsm.core.registry.ServerRegistry</title>
+<script src="../../../google_closure/closure/goog/base.js"></script>
+<script src="../../deps.js"></script>
+<script>
+  goog.require('goog.json');
+  goog.require('goog.testing.MockClock');
+  goog.require('goog.testing.MockControl');
+  goog.require('goog.testing.jsunit');
+  goog.require('goog.testing.net.XhrIo');
+  goog.require('goog.testing.net.XhrIoPool');
+  goog.require('jsm.core.net');
+  goog.require('jsm.core.registry.ServerRegistry');
+</script>
+</head>
+<body>
+<script>
+
+  var allComponentsJsonText = '[' +
+    '{"id": "foo.bar", "name": "FooBar", "description": "Something", "model": "...", "impl": "...", "public": true}' +
+    ']';
+  var allComponentsJson = goog.json.unsafeParse(allComponentsJsonText);
+  
+  var userComponentsJsonText = '[' +
+  '{"id": "foo.bar", "name": "FooBar", "description": "Something", "model": "...", "impl": "...", "public": true},' +
+  '{"id": "foo.baz", "name": "FooBaz", "description": "Something", "model": "...", "impl": "...", "public": false}' +
+  ']';
+  var userComponentsJson = goog.json.unsafeParse(userComponentsJsonText);
+  
+  var options = {
+	base_url: "",
+	user_id: 42
+  }
+
+  var mockControl, xhr, mockSuccessHandler, mockErrorHandler
+
+
+  function setUp() {
+	clock = new goog.testing.MockClock(true);
+	xhr = new goog.testing.net.XhrIo();
+	jsm.core.net.pool = new goog.testing.net.XhrIoPool(xhr);
+    mockControl = new goog.testing.MockControl();
+    mockSuccessHandler = mockControl.createFunctionMock('success'),
+    mockErrorHandler = mockControl.createFunctionMock('error');
+  }
+  
+  function tearDown() {
+	  mockControl.$resetAll();
+      clock.dispose();
+  }
+
+  function testConstructor_call() {
+    var registry = new jsm.core.registry.ServerRegistry(options);
+    assert('Registry available', !!registry);
+  }
+  
+  function testLoad_callSuccess() {	  
+	  var registry = new jsm.core.registry.ServerRegistry(options);
+	  mockSuccessHandler(registry);
+	  mockControl.$replayAll();
+	  
+	  registry.load({config_url: "http://example.com"}, mockSuccessHandler, mockErrorHandler);
+	  xhr.simulateResponse(200);
+	  
+	  mockControl.$verifyAll();
+   }
+  
+  function testLoad_callError() {
+	  var registry = new jsm.core.registry.ServerRegistry(options);
+	  mockErrorHandler("Registry could not load successfully: [404]");
+	  mockControl.$replayAll();
+      
+      registry.load({config_url: "http://example.com"}, mockSuccessHandler, mockErrorHandler);
+      xhr.simulateResponse(404);
+      
+      mockControl.$verifyAll();
+   }
+  
+  function testGetComponents_callSuccess() {
+	  var registry = new jsm.core.registry.ServerRegistry(options);
+      mockSuccessHandler(allComponentsJson);
+      mockControl.$replayAll();
+	  
+	  registry.load(null, function() {
+	      registry.getComponents(mockSuccessHandler,mockErrorHandler);
+	      xhr.simulateResponse(200, allComponentsJsonText);
+	  });
+	  
+	  mockControl.$verifyAll();
+  }
+  
+  function testGetComponents_callError() {
+      var registry = new jsm.core.registry.ServerRegistry(options);
+      mockErrorHandler("Components couldn't be loaded.");
+      mockControl.$replayAll();
+      
+      registry.load(null, function() {
+          registry.getComponents(mockSuccessHandler, mockErrorHandler);
+          xhr.simulateResponse(404);
+      });
+      
+      mockControl.$verifyAll();
+  }
+  
+  function testGetComponents_noErrorHandlerSilentFail() {
+      var registry = new jsm.core.registry.ServerRegistry(options);
+      mockControl.$replayAll();
+      
+      assertNotThrows(function() {
+    	  registry.load(null, function() {
+    		  registry.getComponents(mockSuccessHandler);
+    		  xhr.simulateResponse(404);
+    	  });
+      });
+      
+      mockControl.$verifyAll();
+  }
+  
+  function testGetUserComponents_callSuccess() {
+	  var registry = new jsm.core.registry.ServerRegistry(options);
+      mockSuccessHandler(userComponentsJson);
+      mockControl.$replayAll();
+      
+
+	  registry.load(null, function() {
+		   registry.getComponents(mockSuccessHandler, mockErrorHandler);
+		   xhr.simulateResponse(200, userComponentsJsonText);
+      });
+
+	  mockControl.$verifyAll();
+	}
+  
+  function testGetUserComponents_callError() {
+      var registry = new jsm.core.registry.ServerRegistry(options);
+      mockErrorHandler("User components couldn't be loaded.");
+      mockControl.$replayAll();
+      
+      registry.load(null, function() {
+          registry.getUserComponents(mockSuccessHandler, mockErrorHandler);
+          xhr.simulateResponse(404);
+      });
+      
+      mockControl.$verifyAll();
+  }
+  
+  function testGetUserComponents_noErrorHandlerSilentFail() {
+      var registry = new jsm.core.registry.ServerRegistry(options);
+      mockControl.$replayAll();
+      
+      assertNotThrows(function() {
+          registry.load(null, function() {
+              registry.getUserComponents(mockSuccessHandler);
+              xhr.simulateResponse(404);
+          });
+      });
+      
+      mockControl.$verifyAll();
+  }
+
+	function testGetUserComponents_throwsIfNoUser() {
+		var registry = new jsm.core.registry.ServerRegistry(options);
+		mockControl.$replayAll();
+		
+		var e = assertThrows(function() {
+			  registry.load({user_id : null}, function() {
+	             registry.getUserComponents(mockSuccessHandler, mockErrorHandler);
+	          });
+        });
+		
+		assertEquals('[jsm.core.registry.ServerRegistry] No user id was set',e.message);
+		mockControl.$verifyAll();
+	}
+	
+</script>
+</body>
+</html>
