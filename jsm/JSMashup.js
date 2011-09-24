@@ -12,7 +12,14 @@ goog.require('goog.ui.Component');
 goog.require('goog.object');
 goog.require('goog.array');
 
-
+// add some dependcies
+goog.require('org.reseval.processor.DomainConceptMapper');
+goog.require('org.reseval.processor.ServiceCall');
+goog.require('jsm.processor.JsonProcessorProvider');
+goog.require('jsm.validator.StaticDomainValidator');
+goog.require('jsm.mapper.EMDLMapper');
+goog.require('jsm.mapper.JSONMapper');
+goog.require('jsm.core.DataTypeMapper');
 
 
 /**
