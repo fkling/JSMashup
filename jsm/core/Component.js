@@ -24,7 +24,10 @@ jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
 	this.descriptor = componentDescriptor;
 
 	this.requests = {};
+    this.data = {};
 	
+    this.setData(componentDescriptor.getData());
+
 	goog.array.forEach(this.descriptor.getRequests(), function(request) {
 		this.requests[request.ref] = request;
 	}, this);
@@ -32,7 +35,7 @@ jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
 	this.operationManager = new jsm.core.OperationManager(this, this.descriptor.getOperations());
 
 	
-	this.configurationDialog = new jsm.ui.ConfigurationDialog(componentDescriptor.getParameters());
+	this.configurationDialog = new jsm.ui.ConfigurationDialog(componentDescriptor.getParameters(), this.getData('configTemplate'));
 	this.configurationDialog.createDom();
 	
 	goog.events.listen(this.configurationDialog, 'change', function() {
@@ -42,6 +45,7 @@ jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
 	if(opt_config) {
 		this.setConfiguration(opt_config);
 	}
+
 };
 
 goog.inherits(jsm.core.Component, goog.pubsub.PubSub);
@@ -168,15 +172,32 @@ jsm.core.Component.prototype.getDataProcessors = function() {
 /**
  * @param {Object}
  */
-jsm.core.Component.prototype.setData = function(data, value) {
-	this.descriptor.setData(data, value);
+jsm.core.Component.prototype.setData = function(data, value, overwrite) {
+	if(arguments.length == 2 && goog.isString(data)) {
+		this.data[data] = value;
+	}
+	else {
+		if(overwrite) {
+			this.data = data;
+		}
+		else {
+			for(var name in data) {
+				if(data.hasOwnProperty(name)) {
+					this.data[name] = data[name];
+				}
+			}
+		}
+	}
 };
 
 /**
  * @param {Object} a map of jsm.core.Parameter 
  */
 jsm.core.Component.prototype.getData = function(key) {
-	return this.descriptor.getData(key);
+	if(goog.isString(key)) {
+		return this.data[key];
+	}
+	return this.data;
 };
 
 
@@ -185,10 +206,22 @@ jsm.core.Component.prototype.getData = function(key) {
  * 
  * @return {?Element}
  * 
- * @private
+ * @public
  */
 jsm.core.Component.prototype.getContentNode = function() {
 	return null;
+};
+
+
+/**
+ * Returns the element holding the configuration interface
+ *
+ * @return {?Element}
+ *
+ * @public
+ */
+jsm.core.Component.prototype.getConfigurationElement = function() {
+    return this.getConfigurationDialog().getContentElement();
 };
 
 /**
