@@ -149,6 +149,17 @@ jsm.core.Composition.prototype.getComponents = function(){
 	return result;
 };
 
+jsm.core.Composition.prototype.getComponent = function(name) {
+    name = name.toLowerCase();
+    var results = [];
+    for(var id in this.components) {
+        if(this.components[id].getData('name').toLowerCase() === name) {
+            results.push(this.components[id]);
+        }
+    }
+    return results;
+};
+
 
 /**
  * @param {Array} connections
