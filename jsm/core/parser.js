@@ -24,7 +24,7 @@ jsm.parser.parseNode_ = function(node) {
 			}
 			obj[child.nodeName].push(jsm.parser.parseNode_(child));
 		}
-		else if(child.nodeType === 3) {
+		else if(child.nodeType === 3 || child.nodeType === 4) {
 			if(child.nodeValue.replace(/s+/g, '') !== '') {
 				obj['#text'] += child.nodeValue;
 			}		
