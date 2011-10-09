@@ -44,6 +44,7 @@ jsm.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_c
 	if(this.config.processorProvider) {
 		instance.setProcessorManager(this.config.processorProvider.getProcessorManager(instance));
 	}
+    instance.setData('name', descriptor.getData('name'));
 	return instance;
 };
 

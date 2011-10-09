@@ -26,8 +26,6 @@ jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
 	this.requests = {};
     this.data = {};
 	
-    this.setData(componentDescriptor.getData());
-
 	goog.array.forEach(this.descriptor.getRequests(), function(request) {
 		this.requests[request.ref] = request;
 	}, this);
@@ -35,7 +33,7 @@ jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
 	this.operationManager = new jsm.core.OperationManager(this, this.descriptor.getOperations());
 
 	
-	this.configurationDialog = new jsm.ui.ConfigurationDialog(componentDescriptor.getParameters(), this.getData('configTemplate'));
+	this.configurationDialog = new jsm.ui.ConfigurationDialog(componentDescriptor.getParameters(), this.getDescriptor().getData('configTemplate'));
 	this.configurationDialog.createDom();
 	
 	goog.events.listen(this.configurationDialog, 'change', function() {
@@ -329,6 +327,9 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
         func.call(this, message_body);	
 	}
 	catch (e) {
+        if(window.console) {
+            window.console.log(e);
+        }
 		this.triggerError(operation, e);
 	}	
 };

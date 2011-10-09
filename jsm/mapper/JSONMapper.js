@@ -55,6 +55,10 @@ jsm.mapper.JSONMapper.prototype.getComposition = function(id, model, data, callb
 		(function(index, definition) {
 			self.registry.getComponentDescriptorById(definition.component_id, function(descr) {
 				var instance =  descr.getInstance(definition.instance_id, definition.config);
+                instance.setData(definition.data);
+                if(!instance.getData('name')) {
+                    instance.setData('name', instance.getDescriptor().getData('name'));
+                }
 				instances[index] = instanceMap[instance.getId()] = instance;
 				num_instances++;
 				runWhenFinished();
@@ -83,7 +87,8 @@ jsm.mapper.JSONMapper.prototype.serialize = function(composition) {
 		model.components.push({
 			instance_id:  component.getId(),
 			component_id: component.getDescriptor().getId(),
-			config: component.getConfiguration()
+			config: component.getConfiguration(),
+            data: component.getData()
 		});
 	}
 	
