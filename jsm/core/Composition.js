@@ -149,7 +149,28 @@ jsm.core.Composition.prototype.getComponents = function(){
 	return result;
 };
 
-jsm.core.Composition.prototype.getComponent = function(name) {
+
+/**
+ * Returns the component with the given ID.
+ *
+ * @param {number|string} id
+ * @return {?jsm.core.Component}
+ *
+ * @public
+ */
+jsm.core.Composition.prototype.getComponent = function(id) {
+    return this.components[id] || null;
+};
+
+/**
+ * Returns the components with the given name.
+ *
+ * @param {string} name
+ * @return {Array} of jsm.core.Component
+ *
+ * @public
+ */
+jsm.core.Composition.prototype.getComponentByName = function(name) {
     name = name.toLowerCase();
     var results = [];
     for(var id in this.components) {
