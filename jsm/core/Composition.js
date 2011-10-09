@@ -402,6 +402,7 @@ jsm.core.Composition.prototype.onEventTrigger_ = function(source, event, message
 	if(this.connections[srcId] && this.connections[srcId][event]
      && this.connections[srcId][event].length > 0) {
          goog.array.forEach(this.connections[srcId][event], function(connection) {
+             (function(connection) {
         	 setTimeout(function() {
              	 
         		 //create a copy of the parameters
@@ -413,7 +414,8 @@ jsm.core.Composition.prototype.onEventTrigger_ = function(source, event, message
         		 }
         		 
         		 self.components[connection.target].perform(connection.op, message_copy);
-        	 }, 10);        
+        	 }, 10);
+             }(connection));     
          });
      }
 };
