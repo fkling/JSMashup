@@ -166,6 +166,47 @@ jsm.core.Component.prototype.getDataProcessors = function() {
 	return this.processorManager.getDataProcessors();
 };
 
+/**
+ * Returns a list of incoming connections, meaning where this component
+ * is the target.
+ *
+ * @return {Array}
+ * @public
+ */
+jsm.core.Component.prototype.getIncomingConnections = function() {
+    var result = [],
+        id = this.getId();
+
+    if(this.composition) {
+        result = goog.array.filter(this.composition.getConnections(), function(connection) {
+            return id == connection.target;
+        });
+    }
+
+    return result;
+};
+
+
+/**
+ * Returns a list of outgoing connections, meaning where this component
+ * is the target.
+ *
+ * @return {Array}
+ * @public
+ */
+jsm.core.Component.prototype.getOutgoingConnections = function() {
+    var result = [],
+        id = this.getId();
+
+    if(this.composition) {
+        result = goog.array.filter(this.composition.getConnections(), function(connection) {
+            return id == connection.source;
+        });
+    }
+
+    return result;
+};
+
 
 /**
  * @param {Object}
