@@ -525,9 +525,9 @@ jsm.core.Component.prototype.makeRequest = function(name, url, getData, postData
 jsm.core.Component.prototype.connect = function(src, event, target, operation) {
 	this.publish(jsm.core.Component.Events.CONNECT, 
 			src, 
-			event.replace(/^output_/, ''), 
+			event,
 			target,  
-			operation.replace(/^input_/, ''), 
+			operation,
 			src === this
 	);
 };
@@ -543,9 +543,9 @@ jsm.core.Component.prototype.connect = function(src, event, target, operation) {
 jsm.core.Component.prototype.disconnect = function(src, event, target, operation) {
 	this.publish(jsm.core.Component.Events.DISCONNECT, 
 			src, 
-			event.replace(/^output_/, ''), 
+			event,
 			target,  
-			operation.replace(/^input_/, ''), 
+			operation,
 			src === this
 	);
 };
@@ -560,7 +560,7 @@ jsm.core.Component.prototype.getInputs = function() {
 	var operations = this.descriptor.getOperations(),
 		inputs = {};
 	for(var j = operations.length; j--; ) {
-		inputs['input_' + operations[j].getRef()] = operations[j].getData('name');
+		inputs[operations[j].getRef()] = operations[j].getData('name');
 	}
 	return inputs;
 };
@@ -576,13 +576,13 @@ jsm.core.Component.prototype.getOutputs = function() {
 		outputs = {};
 	for(var j = operations.length; j--; ) {
 		if(operations[j].getOutputs().length > 0) {
-			outputs['output_' + operations[j].getRef()] = operations[j].getData('name')
+			outputs[operations[j].getRef()] = operations[j].getData('name')
 		}
 	}
 	
 	var events = this.descriptor.getEvents();
 	for(var j = events.length; j--; ) {
-		outputs['output_' + events[j].getRef()] = events[j].getData('name')
+		outputs[events[j].getRef()] = events[j].getData('name')
 	}
 	return outputs;
 };
@@ -628,15 +628,6 @@ jsm.core.Component.prototype.add = function(composition) {
  */
 jsm.core.Component.prototype.remove = function() {
 	this.publish(jsm.core.Component.Events.REMOVED, this, this.composition);
-	
-	goog.events.removeAll(this.configurationDialog, 'change');
-	
-	this.configurationDialog = null;
-	
-	if(this.element_ && this.element_.parentNode) {
-		this.element_.parentNode.removeChild(this.element_);
-	}
-	this.element_ = null;
 };
 
 

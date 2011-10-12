@@ -85,7 +85,7 @@ jsm.core.Composition.prototype.getModel = function(){
  * @param {jsm.core.Component} component
  */
 jsm.core.Composition.prototype.addComponent = function(component){
-	var id = component.getId() || ++this.cid_;
+	var id = +component.getId() || ++this.cid_;
 	if(id > this.cid_) {
 		this.cid_ =  id;
 	}
@@ -94,12 +94,9 @@ jsm.core.Composition.prototype.addComponent = function(component){
 	
 	this.components[id] = component;
 	
-	component.subscribe(component.Events.CONNECT, this.connect, this);
-	component.subscribe(component.Events.DISCONNECT, this.disconnect, this);
 	component.subscribe(component.Events.OPSTART, this.onOperationStart_, this);
 	component.subscribe(component.Events.OPEND, this.onOperationEnd_, this);
 	component.subscribe(component.Events.EVENT, this.onEventTrigger_, this);
-	component.subscribe(component.Events.REMOVED, this.removeComponent, this);
 	this.publish(jsm.core.Composition.Events.CHANGED, this);
 };
 
@@ -123,10 +120,12 @@ jsm.core.Composition.prototype.removeComponent = function(component){
 		}
 	}
 	
+	component.unsubscribe(component.Events.OPSTART, this.onOperationStart_, this);
+	component.unsubscribe(component.Events.OPEND, this.onOperationEnd_, this);
+	component.unsubscribe(component.Events.EVENT, this.onEventTrigger_, this);
+
 	delete this.connected_map[id];
 	delete this.components[id];
-	
-	
 };
 
 /**
@@ -186,7 +185,7 @@ jsm.core.Composition.prototype.getComponentByName = function(name) {
  * @param {Array} connections
  */
 jsm.core.Composition.prototype.addConnection = function(connection){
-	connection.source.connect(connection.source, connection.event, connection.target, connection.operation);
+	this.connect(connection.source, connection.event, connection.target, connection.operation);
 };
 
 
@@ -290,26 +289,27 @@ jsm.core.Composition.prototype.run = function() {
  * @param {string} target
  * @param {string} operation
  */
-jsm.core.Composition.prototype.connect = function(source, event, target, operation, isSource){
-	if(isSource !== false) {
-		var sourceId = source.getId(),
-			targetId = target.getId();
-		
-		var src_connections = this.connections[sourceId] || (this.connections[sourceId] = {}),
-		    event_connections = src_connections[event] || (src_connections[event] = []);
-	
-		// don't connect twice
-	    if(goog.array.some(event_connections, function(c) {return c.target === targetId && c.op === operation;})) {
-	        return;
-	    }
-	    event_connections.push({target: targetId, op: operation});
-	    var connected = this.connected_map[targetId] || (this.connected_map[targetId] = {});
-	    connected[operation] = true;
-	    
-	    if(jsm.core.Composition.argumentMapper) {
-	    	jsm.core.Composition.argumentMapper.createMapping(source, event, target, operation);
-	    }
-	}
+jsm.core.Composition.prototype.connect = function(source, event, target, operation){
+    var sourceId = source.getId(),
+        targetId = target.getId();
+    
+    var src_connections = this.connections[sourceId] || (this.connections[sourceId] = {}),
+        event_connections = src_connections[event] || (src_connections[event] = []);
+
+    // don't connect twice
+    if(goog.array.some(event_connections, function(c) {return c.target === targetId && c.op === operation;})) {
+        return;
+    }
+    event_connections.push({target: targetId, op: operation});
+    var connected = this.connected_map[targetId] || (this.connected_map[targetId] = {});
+    connected[operation] = true;
+    
+    if(jsm.core.Composition.argumentMapper) {
+        jsm.core.Composition.argumentMapper.createMapping(source, event, target, operation);
+    }
+
+    source.connect(source, event, target, operation);
+    target.connect(source, event, target, operation);
 };
 
 /**
@@ -319,25 +319,25 @@ jsm.core.Composition.prototype.connect = function(source, event, target, operati
  * @param {string} operation
  */
 jsm.core.Composition.prototype.disconnect = function(source, event, target, operation, isSource){
-	if(isSource !== false) {
-		var sourceId = source.getId(),
-		targetId = target.getId();
-		
-	    if(this.connections[sourceId] && this.connections[sourceId][event]) {
-	        var event_connections = this.connections[sourceId][event];
-	        for(var i = event_connections.length; i--; ) {
-	            var connection = event_connections[i];
-	            if(connection.target === targetId && connection.op === operation) {
-	            	this.connected_map[targetId][operation] = false;
-	                event_connections.splice(i, 1);
-	            }
-	        }
-	    }
-	    
-	    if(jsm.core.Composition.argumentMapper) {
-	    	jsm.core.Composition.argumentMapper.removeMapping(source, event, target, operation);
-	    }
-	}
+    var sourceId = source.getId(),
+    targetId = target.getId();
+    
+    if(this.connections[sourceId] && this.connections[sourceId][event]) {
+        var event_connections = this.connections[sourceId][event];
+        for(var i = event_connections.length; i--; ) {
+            var connection = event_connections[i];
+            if(connection.target === targetId && connection.op === operation) {
+                this.connected_map[targetId][operation] = false;
+                event_connections.splice(i, 1);
+            }
+        }
+    }
+    
+    if(jsm.core.Composition.argumentMapper) {
+        jsm.core.Composition.argumentMapper.removeMapping(source, event, target, operation);
+    }
+    source.disconnect(source, event, target, operation);
+    target.disconnect(source, event, target, operation);
 };
 
 
@@ -402,9 +402,7 @@ jsm.core.Composition.prototype.onEventTrigger_ = function(source, event, message
 	if(this.connections[srcId] && this.connections[srcId][event]
      && this.connections[srcId][event].length > 0) {
          goog.array.forEach(this.connections[srcId][event], function(connection) {
-             (function(connection) {
-        	 setTimeout(function() {
-             	 
+             setTimeout(function() {
         		 //create a copy of the parameters
         		 var message_copy = JSON.parse(JSON.stringify(message));
         		 
@@ -415,7 +413,6 @@ jsm.core.Composition.prototype.onEventTrigger_ = function(source, event, message
         		 
         		 self.components[connection.target].perform(connection.op, message_copy);
         	 }, 10);
-             }(connection));     
          });
      }
 };
