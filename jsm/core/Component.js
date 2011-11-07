@@ -587,7 +587,7 @@ jsm.core.Component.prototype.getInputs = function() {
 	var operations = this.descriptor.getOperations(),
 		inputs = {};
 	for(var j = operations.length; j--; ) {
-		inputs[operations[j].getRef()] = operations[j].getData('name');
+		inputs[operations[j].getRef()] = {name: operations[j].getData('name'), type: operations[j].getInputs()[0].type};
 	}
 	return inputs;
 };
@@ -603,13 +603,13 @@ jsm.core.Component.prototype.getOutputs = function() {
 		outputs = {};
 	for(var j = operations.length; j--; ) {
 		if(operations[j].getOutputs().length > 0) {
-			outputs[operations[j].getRef()] = operations[j].getData('name')
+			outputs[operations[j].getRef()] = {name: operations[j].getData('name'), type: operations[j].getOutputs()[0].type};
 		}
 	}
 	
 	var events = this.descriptor.getEvents();
 	for(var j = events.length; j--; ) {
-		outputs[events[j].getRef()] = events[j].getData('name')
+		outputs[events[j].getRef()] = {name: events[j].getData('name'), type: events[j].getOutputs()[0].type};
 	}
 	return outputs;
 };
