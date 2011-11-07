@@ -175,11 +175,16 @@ jsm.ui.ConfigurationDialog.prototype.createDom = function() {
 };
 
 jsm.ui.ConfigurationDialog.prototype.prepareTemplate_ = function() {
-    this.template = this.template.replace(/\{\s*(\S+)\s*\}/g, function(match,  name) {
-        return '<span class="jsm_placeholder" data-name="' + name + '"></span>';
-    });
     var tmp = document.createElement('div');
-    tmp.innerHTML = this.template;
+    if(typeof this.template === 'string') {
+        this.template = this.template.replace(/\{\s*(\S+)\s*\}/g, function(match,  name) {
+            return '<span class="jsm_placeholder" data-name="' + name + '"></span>';
+        });
+        tmp.innerHTML = this.template;
+    }
+    else {
+        tmp.appendChild(this.template);
+    }
 
     var placeholders = goog.dom.getElementsByClass('jsm_placeholder', tmp);
     for(var i = 0, l = placeholders.length; i < l; i++) {

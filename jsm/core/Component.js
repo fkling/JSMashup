@@ -32,16 +32,8 @@ jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
 	
 	this.operationManager = new jsm.core.OperationManager(this, this.descriptor.getOperations());
 
-	
-	this.configurationDialog = new jsm.ui.ConfigurationDialog(componentDescriptor.getParameters(), this.getDescriptor().getData('configTemplate'));
-	this.configurationDialog.createDom();
-	
-	goog.events.listen(this.configurationDialog, 'change', function() {
-		this.publish(jsm.core.Component.Events.CONFIG_CHANGED, this);
-	}, false, this);
-	
 	if(opt_config) {
-		this.setConfiguration(opt_config);
+		this.configuration_ = opt_config;
 	}
 
 };
@@ -260,15 +252,39 @@ jsm.core.Component.prototype.getContentNode = function() {
  * @public
  */
 jsm.core.Component.prototype.getConfigurationElement = function() {
+    if(!this.configurationDialog) {
+        this.configurationDialog = new jsm.ui.ConfigurationDialog(this.descriptor.getParameters(), this.getConfigurationTemplate());
+        this.configurationDialog.createDom();
+        if(this.configuration_) {
+            this.setConfiguration(this.configuration_);
+        }
+        goog.events.listen(this.configurationDialog, 'change', function() {
+            this.publish(jsm.core.Component.Events.CONFIG_CHANGED, this);
+        }, false, this);
+    }
     return this.getConfigurationDialog().getContentElement();
 };
 
+
 /**
- * Gets the content node of the component.
- * 
- * @return {?Element}
- * 
+ * Returns the template for the configuration interface.
+ *
+ * Can be overwritten by the implementation
+ *
+ * @return {string}
+ *
  * @private
+ */
+jsm.core.Component.prototype.getConfigurationTemplate = function() {
+    return this.descriptor.getData('configTemplate') || null;
+};
+
+
+/**
+ * Update the display of a component - can be overridden by implementation
+ * 
+ * 
+ * @public
  */
 jsm.core.Component.prototype.update = function() {
 };
