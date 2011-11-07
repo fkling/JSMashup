@@ -37,7 +37,7 @@ jsm.mapper.EMDLMapper.prototype.getDescriptor = function(id, serialized, data) {
  * @override
  */
 jsm.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_config) {
-	var instance = new jsm.core.Component(descriptor, opt_id, opt_config);
+	var instance = new jsm.core.Component(descriptor, opt_id);
 	
 	var f = new Function("exports", descriptor.getData('implementation'));
 	f(instance);
@@ -45,6 +45,7 @@ jsm.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_c
 		instance.setProcessorManager(this.config.processorProvider.getProcessorManager(instance));
 	}
     instance.setData('name', descriptor.getData('name'));
+    instance.setConfiguration(opt_config);
 	return instance;
 };
 

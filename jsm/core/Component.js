@@ -105,6 +105,7 @@ jsm.core.Component.prototype.getId = function() {
  * @public
  */
 jsm.core.Component.prototype.getConfigurationDialog = function() {
+    this.prepareConfigurationDialog_();
 	return this.configurationDialog;
 };
 
@@ -252,6 +253,14 @@ jsm.core.Component.prototype.getContentNode = function() {
  * @public
  */
 jsm.core.Component.prototype.getConfigurationElement = function() {
+    this.prepareConfigurationDialog_();
+    return this.getConfigurationDialog().getContentElement();
+};
+
+/**
+ * @private
+ */
+jsm.core.Component.prototype.prepareConfigurationDialog_ = function() {
     if(!this.configurationDialog) {
         this.configurationDialog = new jsm.ui.ConfigurationDialog(this.descriptor.getParameters(), this.getConfigurationTemplate());
         this.configurationDialog.createDom();
@@ -262,8 +271,8 @@ jsm.core.Component.prototype.getConfigurationElement = function() {
             this.publish(jsm.core.Component.Events.CONFIG_CHANGED, this);
         }, false, this);
     }
-    return this.getConfigurationDialog().getContentElement();
 };
+
 
 
 /**
@@ -307,6 +316,7 @@ jsm.core.Component.prototype.validate = function() {
  * @return {Object.<string, {value: string, display: string}} the configuration 
  */
 jsm.core.Component.prototype.getConfiguration = function() {
+    this.prepareConfigurationDialog_();
 	return this.configurationDialog.getConfiguration();
 };
 
@@ -317,6 +327,7 @@ jsm.core.Component.prototype.getConfiguration = function() {
  * @param {Object.<string, {value: string, display: string}} config
  */
 jsm.core.Component.prototype.setConfiguration = function(config) {
+    this.prepareConfigurationDialog_();
 	return this.configurationDialog.setConfiguration(config);
 };
 
