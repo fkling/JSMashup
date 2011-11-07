@@ -62,6 +62,9 @@ jsm.ui.input.Autocomplete.prototype.renderInternal_ = function() {
 		goog.events.listen(this.inputElement_, 'change', function(e) {
 			if(e.target.value !== this.lastDisplay_) {
 				this.lastDisplay_ = e.target.value;
+                if(e.target.value === '') {
+                    this.lastValue_ = '';
+                }
 				this.dispatchEvent({
 					type: jsm.ui.input.BaseInput.Events.CHANGE
 				});
