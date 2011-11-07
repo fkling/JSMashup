@@ -289,6 +289,17 @@ jsm.core.Component.prototype.getConfigurationTemplate = function() {
 jsm.core.Component.prototype.update = function() {
 };
 
+/**
+ * Validates the component regarding its configuration options.
+ *
+ */
+jsm.core.Component.prototype.validate = function() {
+    if(this.validateInternal_) {
+        return this.validateInternal_(this.getConfiguration());
+    }
+    return true;  
+};
+
 
 /**
  * Returns a option name - value mapping.
