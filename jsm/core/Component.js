@@ -384,11 +384,13 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
 	// if the operation is synchronous or there is no implemented method,  
 	// we can mark the operation is finished automatically
 	if(!op.isAsync() || !func) {
-		var old_func = func || function(){};
+		var old_func = func || function(){ return {};};
 		func = function(message_body) {
-			old_func.call(this, message_body);
+			var data = old_func.call(this, message_body);
 			this.markOperationAsFinished(operation);
-			this.triggerEvent(operation, message_body);
+			if(op.getOutputs().length > 0) {
+			    this.triggerEvent(operation, data || {});
+			}
 		};
 	}
 
