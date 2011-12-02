@@ -81,11 +81,18 @@ jsm.core.Composition.prototype.getModel = function(){
 	return this.model;
 };
 
+
 /**
+ * Add a component to this composition.
+ *
+ * Triggers the CHANGED event.
+ *
  * @param {jsm.core.Component} component
+ *
+ * @public
  */
 jsm.core.Composition.prototype.addComponent = function(component){
-	var id = component.getId() || ++this.cid_;
+	var id = +component.getId() || ++this.cid_;
 	if(id > this.cid_) {
 		this.cid_ =  id;
 	}
@@ -94,15 +101,22 @@ jsm.core.Composition.prototype.addComponent = function(component){
 	
 	this.components[id] = component;
 	
-	component.subscribe(component.Events.CONNECT, this.connect, this);
-	component.subscribe(component.Events.DISCONNECT, this.disconnect, this);
 	component.subscribe(component.Events.OPSTART, this.onOperationStart_, this);
 	component.subscribe(component.Events.OPEND, this.onOperationEnd_, this);
 	component.subscribe(component.Events.EVENT, this.onEventTrigger_, this);
-	component.subscribe(component.Events.REMOVED, this.removeComponent, this);
 	this.publish(jsm.core.Composition.Events.CHANGED, this);
 };
 
+
+/**
+ * Remove a component from this compostion.
+ *
+ * Triggers the CHANGED event.
+ *
+ * @param {jsm.core.Component} component
+ *
+ * @public
+ */
 jsm.core.Composition.prototype.removeComponent = function(component){
 	this.publish(jsm.core.Composition.CHANGED, this);
 	var id = component.getId();
@@ -123,14 +137,21 @@ jsm.core.Composition.prototype.removeComponent = function(component){
 		}
 	}
 	
+	component.unsubscribe(component.Events.OPSTART, this.onOperationStart_, this);
+	component.unsubscribe(component.Events.OPEND, this.onOperationEnd_, this);
+	component.unsubscribe(component.Events.EVENT, this.onEventTrigger_, this);
+
 	delete this.connected_map[id];
 	delete this.components[id];
-	
-	
 };
 
+
 /**
+ * Add a list of components.
+ *
  * @param {Array} components
+ *
+ * @public
  */
 jsm.core.Composition.prototype.setComponents = function(components){
 	for(var i = 0, l = components.length; i < l; i++) {
@@ -139,7 +160,11 @@ jsm.core.Composition.prototype.setComponents = function(components){
 };
 
 /**
- * return  {Array} components
+ * Get a list of components present in this composition.
+ *
+ * @return  {Array} components
+ *
+ * @public
  */
 jsm.core.Composition.prototype.getComponents = function(){
 	var result = [];
@@ -151,10 +176,43 @@ jsm.core.Composition.prototype.getComponents = function(){
 
 
 /**
+ * Returns the component with the given ID.
+ *
+ * @param {number|string} id
+ * @return {?jsm.core.Component}
+ *
+ * @public
+ */
+jsm.core.Composition.prototype.getComponent = function(id) {
+    return this.components[id] || null;
+};
+
+
+/**
+ * Returns the components with the given name.
+ *
+ * @param {string} name
+ * @return {Array} of jsm.core.Component
+ *
+ * @public
+ */
+jsm.core.Composition.prototype.getComponentByName = function(name) {
+    name = name.toLowerCase();
+    var results = [];
+    for(var id in this.components) {
+        if(this.components[id].getData('name').toLowerCase() === name) {
+            results.push(this.components[id]);
+        }
+    }
+    return results;
+};
+
+
+/**
  * @param {Array} connections
  */
 jsm.core.Composition.prototype.addConnection = function(connection){
-	connection.source.connect(connection.source, connection.event, connection.target, connection.operation);
+	this.connect(connection.source, connection.event, connection.target, connection.operation);
 };
 
 
@@ -198,8 +256,17 @@ jsm.core.Composition.prototype.getConnections = function(){
  */
 jsm.core.Composition.prototype.isValid = function(errors) {
 	var errors = {},
-		valid = true;
+		valid_ = true;
+
+    for(var id in this.components) {
+        var valid = this.components[id].validate();
+        if(valid !== true) {
+            errors[this.components[id].getData('name')] = valid;
+            valid_ = false;
+        }
+    }
 	
+    /*    
 	for(var id in this.components) {
 		var missing_fields = this.components[id].getConfigurationDialog().getInvalidFields(),
 			missing_connections = [],
@@ -231,7 +298,8 @@ jsm.core.Composition.prototype.isValid = function(errors) {
 			valid = false;
 		}
 	}
-	return valid;
+    */
+	return valid_ || errors;
 };
 
 
@@ -241,7 +309,13 @@ jsm.core.Composition.prototype.isValid = function(errors) {
  * 
  * @public
  */
-jsm.core.Composition.prototype.run = function() {
+jsm.core.Composition.prototype.run = function(error) {
+    var valid = this.isValid();
+    if(valid !== true) {
+        error(valid);
+        return;
+    }
+
 	for(var id in this.components) {
 		this.components[id].reset();
 	}
@@ -253,31 +327,36 @@ jsm.core.Composition.prototype.run = function() {
 
 
 /**
- * @param {string} source
+ * Connect two components.
+ *
+ * @param {jsm.core.Component} source
  * @param {string} event
- * @param {string} target
+ * @param {jsm.core.Component}} target
  * @param {string} operation
+ *
+ * @public
  */
-jsm.core.Composition.prototype.connect = function(source, event, target, operation, isSource){
-	if(isSource !== false) {
-		var sourceId = source.getId(),
-			targetId = target.getId();
-		
-		var src_connections = this.connections[sourceId] || (this.connections[sourceId] = {}),
-		    event_connections = src_connections[event] || (src_connections[event] = []);
-	
-		// don't connect twice
-	    if(goog.array.some(event_connections, function(c) {return c.target === targetId && c.op === operation;})) {
-	        return;
-	    }
-	    event_connections.push({target: targetId, op: operation});
-	    var connected = this.connected_map[targetId] || (this.connected_map[targetId] = {});
-	    connected[operation] = true;
-	    
-	    if(jsm.core.Composition.argumentMapper) {
-	    	jsm.core.Composition.argumentMapper.createMapping(source, event, target, operation);
-	    }
-	}
+jsm.core.Composition.prototype.connect = function(source, event, target, operation){
+    var sourceId = source.getId(),
+        targetId = target.getId();
+    
+    var src_connections = this.connections[sourceId] || (this.connections[sourceId] = {}),
+        event_connections = src_connections[event] || (src_connections[event] = []);
+
+    // don't connect twice
+    if(goog.array.some(event_connections, function(c) {return c.target === targetId && c.op === operation;})) {
+        return;
+    }
+    event_connections.push({target: targetId, op: operation});
+    var connected = this.connected_map[targetId] || (this.connected_map[targetId] = {});
+    connected[operation] = true;
+    
+    if(jsm.core.Composition.argumentMapper) {
+        jsm.core.Composition.argumentMapper.createMapping(source, event, target, operation);
+    }
+
+    source.connect(source, event, target, operation);
+    target.connect(source, event, target, operation);
 };
 
 /**
@@ -287,25 +366,25 @@ jsm.core.Composition.prototype.connect = function(source, event, target, operati
  * @param {string} operation
  */
 jsm.core.Composition.prototype.disconnect = function(source, event, target, operation, isSource){
-	if(isSource !== false) {
-		var sourceId = source.getId(),
-		targetId = target.getId();
-		
-	    if(this.connections[sourceId] && this.connections[sourceId][event]) {
-	        var event_connections = this.connections[sourceId][event];
-	        for(var i = event_connections.length; i--; ) {
-	            var connection = event_connections[i];
-	            if(connection.target === targetId && connection.op === operation) {
-	            	this.connected_map[targetId][operation] = false;
-	                event_connections.splice(i, 1);
-	            }
-	        }
-	    }
-	    
-	    if(jsm.core.Composition.argumentMapper) {
-	    	jsm.core.Composition.argumentMapper.removeMapping(source, event, target, operation);
-	    }
-	}
+    var sourceId = source.getId(),
+    targetId = target.getId();
+    
+    if(this.connections[sourceId] && this.connections[sourceId][event]) {
+        var event_connections = this.connections[sourceId][event];
+        for(var i = event_connections.length; i--; ) {
+            var connection = event_connections[i];
+            if(connection.target === targetId && connection.op === operation) {
+                this.connected_map[targetId][operation] = false;
+                event_connections.splice(i, 1);
+            }
+        }
+    }
+    
+    if(jsm.core.Composition.argumentMapper) {
+        jsm.core.Composition.argumentMapper.removeMapping(source, event, target, operation);
+    }
+    source.disconnect(source, event, target, operation);
+    target.disconnect(source, event, target, operation);
 };
 
 
@@ -370,8 +449,7 @@ jsm.core.Composition.prototype.onEventTrigger_ = function(source, event, message
 	if(this.connections[srcId] && this.connections[srcId][event]
      && this.connections[srcId][event].length > 0) {
          goog.array.forEach(this.connections[srcId][event], function(connection) {
-        	 setTimeout(function() {
-             	 
+             setTimeout(function() {
         		 //create a copy of the parameters
         		 var message_copy = JSON.parse(JSON.stringify(message));
         		 
@@ -381,7 +459,7 @@ jsm.core.Composition.prototype.onEventTrigger_ = function(source, event, message
         		 }
         		 
         		 self.components[connection.target].perform(connection.op, message_copy);
-        	 }, 10);        
+        	 }, 10);
          });
      }
 };

@@ -261,7 +261,7 @@ jsm.core.registry.ServerRegistry.prototype.createComposition = function(composit
 		complete: function(id, e) {
 			if(e.target.getStatus() === 201) {
 				composition.setId(id);
-				this.compositions[id] = {model: serializedComposition, data: data};
+				this.compositions[id] = {model: serializedComposition, metaData: data};
 				this.userCompositionsArray_ = [];
 				this.compositionsArray_ = [];
 				success(id);
@@ -285,7 +285,7 @@ jsm.core.registry.ServerRegistry.prototype.saveComposition = function(compositio
 		dataType: 'application/json',
 		context: this,
 		success: function(text, e) {
-			this.compositions[id] = {model: serializedComposition, data: data};
+			this.compositions[id] = {model: serializedComposition, metaData: data};
 			this.userCompositionsArray_ = [];
 			this.compositionsArray_ = [];
 			success(id);

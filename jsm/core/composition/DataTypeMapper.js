@@ -151,7 +151,7 @@ jsm.core.DataTypeMapper.SIMPLE_DATA_TYPE_COMPARISON = function(source, event, ta
 		});
 		
 		if(output) {
-			mapping[input.name] = output.name;
+			mapping[output.name] = input.name;
 		}
 	});
 	

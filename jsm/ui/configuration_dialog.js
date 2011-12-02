@@ -6,6 +6,7 @@ goog.require('jsm.util.OptionMap');
 
 goog.require('goog.ui.Component');
 goog.require('goog.events');
+goog.require('goog.dom');
 goog.require('goog.object');
 
 /**
@@ -15,12 +16,13 @@ goog.require('goog.object');
  *     by the parser.
  * @constructor
  */
-jsm.ui.ConfigurationDialog = function(parameters) {
+jsm.ui.ConfigurationDialog = function(parameters, template) {
 	goog.ui.Component.call(this);
 
 	this.parameters = {};
 	this.fields = {};
 	this.dependencies = {};
+    this.template = template;
 	
 	var parameter, field, ref;
 	
@@ -157,9 +159,37 @@ jsm.ui.ConfigurationDialog.prototype.getValues = function() {
  */
 jsm.ui.ConfigurationDialog.prototype.createDom = function() {
 	if(!this.element_) {
-		this.element_ =  this.dom_.createDom('div', {'class': 'jsm.configuration_dialog'});
-		for(var name in this.fields) {
-			this.dom_.appendChild(this.element_, this.fields[name].render());
-		}
+        if(goog.object.getKeys(this.fields).length > 0) {
+            if(this.template) {
+                this.element_ = this.prepareTemplate_();
+                this.element_.className = 'jsm.configuration_dialog';
+            }
+            else {
+                this.element_ =  this.dom_.createDom('div', {'class': 'jsm.configuration_dialog'});
+                for(var name in this.fields) {
+                    this.dom_.appendChild(this.element_, this.fields[name].render());
+                }
+            }
+        }
 	}
+};
+
+jsm.ui.ConfigurationDialog.prototype.prepareTemplate_ = function() {
+    var tmp = document.createElement('div');
+    if(typeof this.template === 'string') {
+        this.template = this.template.replace(/\{\s*(\S+)\s*\}/g, function(match,  name) {
+            return '<span class="jsm_placeholder" data-name="' + name + '"></span>';
+        });
+        tmp.innerHTML = this.template;
+    }
+    else {
+        tmp.appendChild(this.template);
+    }
+
+    var placeholders = goog.dom.getElementsByClass('jsm_placeholder', tmp);
+    for(var i = 0, l = placeholders.length; i < l; i++) {
+        var p = placeholders[i];
+        p.parentNode.replaceChild(this.fields[p.getAttribute('data-name')].render(), p);
+    }
+    return tmp;
 };

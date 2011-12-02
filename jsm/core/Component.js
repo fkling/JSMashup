@@ -24,6 +24,7 @@ jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
 	this.descriptor = componentDescriptor;
 
 	this.requests = {};
+    this.data = {};
 	
 	goog.array.forEach(this.descriptor.getRequests(), function(request) {
 		this.requests[request.ref] = request;
@@ -31,17 +32,10 @@ jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
 	
 	this.operationManager = new jsm.core.OperationManager(this, this.descriptor.getOperations());
 
-	
-	this.configurationDialog = new jsm.ui.ConfigurationDialog(componentDescriptor.getParameters());
-	this.configurationDialog.createDom();
-	
-	goog.events.listen(this.configurationDialog, 'change', function() {
-		this.publish(jsm.core.Component.Events.CONFIG_CHANGED, this);
-	}, false, this);
-	
 	if(opt_config) {
-		this.setConfiguration(opt_config);
+		this.configuration_ = opt_config;
 	}
+
 };
 
 goog.inherits(jsm.core.Component, goog.pubsub.PubSub);
@@ -111,6 +105,7 @@ jsm.core.Component.prototype.getId = function() {
  * @public
  */
 jsm.core.Component.prototype.getConfigurationDialog = function() {
+    this.prepareConfigurationDialog_();
 	return this.configurationDialog;
 };
 
@@ -164,19 +159,77 @@ jsm.core.Component.prototype.getDataProcessors = function() {
 	return this.processorManager.getDataProcessors();
 };
 
+/**
+ * Returns a list of incoming connections, meaning where this component
+ * is the target.
+ *
+ * @return {Array}
+ * @public
+ */
+jsm.core.Component.prototype.getIncomingConnections = function() {
+    var result = [],
+        id = this.getId();
+
+    if(this.composition) {
+        result = goog.array.filter(this.composition.getConnections(), function(connection) {
+            return id == connection.target;
+        });
+    }
+
+    return result;
+};
+
+
+/**
+ * Returns a list of outgoing connections, meaning where this component
+ * is the target.
+ *
+ * @return {Array}
+ * @public
+ */
+jsm.core.Component.prototype.getOutgoingConnections = function() {
+    var result = [],
+        id = this.getId();
+
+    if(this.composition) {
+        result = goog.array.filter(this.composition.getConnections(), function(connection) {
+            return id == connection.source;
+        });
+    }
+
+    return result;
+};
+
 
 /**
  * @param {Object}
  */
-jsm.core.Component.prototype.setData = function(data, value) {
-	this.descriptor.setData(data, value);
+jsm.core.Component.prototype.setData = function(data, value, overwrite) {
+	if(arguments.length == 2 && goog.isString(data)) {
+		this.data[data] = value;
+	}
+	else {
+		if(overwrite) {
+			this.data = data;
+		}
+		else {
+			for(var name in data) {
+				if(data.hasOwnProperty(name)) {
+					this.data[name] = data[name];
+				}
+			}
+		}
+	}
 };
 
 /**
  * @param {Object} a map of jsm.core.Parameter 
  */
 jsm.core.Component.prototype.getData = function(key) {
-	return this.descriptor.getData(key);
+	if(goog.isString(key)) {
+		return this.data[key];
+	}
+	return this.data;
 };
 
 
@@ -185,20 +238,75 @@ jsm.core.Component.prototype.getData = function(key) {
  * 
  * @return {?Element}
  * 
- * @private
+ * @public
  */
 jsm.core.Component.prototype.getContentNode = function() {
 	return null;
 };
 
+
 /**
- * Gets the content node of the component.
- * 
+ * Returns the element holding the configuration interface
+ *
  * @return {?Element}
- * 
+ *
+ * @public
+ */
+jsm.core.Component.prototype.getConfigurationElement = function() {
+    this.prepareConfigurationDialog_();
+    return this.getConfigurationDialog().getContentElement();
+};
+
+/**
  * @private
  */
+jsm.core.Component.prototype.prepareConfigurationDialog_ = function() {
+    if(!this.configurationDialog) {
+        this.configurationDialog = new jsm.ui.ConfigurationDialog(this.descriptor.getParameters(), this.getConfigurationTemplate());
+        this.configurationDialog.createDom();
+        if(this.configuration_) {
+            this.setConfiguration(this.configuration_);
+        }
+        goog.events.listen(this.configurationDialog, 'change', function() {
+            this.publish(jsm.core.Component.Events.CONFIG_CHANGED, this);
+        }, false, this);
+    }
+};
+
+
+
+/**
+ * Returns the template for the configuration interface.
+ *
+ * Can be overwritten by the implementation
+ *
+ * @return {string}
+ *
+ * @private
+ */
+jsm.core.Component.prototype.getConfigurationTemplate = function() {
+    return this.descriptor.getData('configTemplate') || null;
+};
+
+
+/**
+ * Update the display of a component - can be overridden by implementation
+ * 
+ * 
+ * @public
+ */
 jsm.core.Component.prototype.update = function() {
+};
+
+/**
+ * Validates the component regarding its configuration options.
+ *
+ */
+jsm.core.Component.prototype.validate = function() {
+    if(this.validateInternal_) {
+        return this.validateInternal_(this.getConfiguration());
+    }
+    return true;  
 };
 
 
@@ -208,6 +316,7 @@ jsm.core.Component.prototype.update = function() {
  * @return {Object.<string, {value: string, display: string}} the configuration 
  */
 jsm.core.Component.prototype.getConfiguration = function() {
+    this.prepareConfigurationDialog_();
 	return this.configurationDialog.getConfiguration();
 };
 
@@ -218,6 +327,7 @@ jsm.core.Component.prototype.getConfiguration = function() {
  * @param {Object.<string, {value: string, display: string}} config
  */
 jsm.core.Component.prototype.setConfiguration = function(config) {
+    this.prepareConfigurationDialog_();
 	return this.configurationDialog.setConfiguration(config);
 };
 
@@ -274,11 +384,13 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
 	// if the operation is synchronous or there is no implemented method,  
 	// we can mark the operation is finished automatically
 	if(!op.isAsync() || !func) {
-		var old_func = func || function(){};
+		var old_func = func || function(){ return {};};
 		func = function(message_body) {
-			old_func.call(this, message_body);
+			var data = old_func.call(this, message_body);
 			this.markOperationAsFinished(operation);
-			this.triggerEvent(operation, message_body);
+			if(op.getOutputs().length > 0) {
+			    this.triggerEvent(operation, data || {});
+			}
 		};
 	}
 
@@ -296,6 +408,9 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
         func.call(this, message_body);	
 	}
 	catch (e) {
+        if(window.console) {
+            window.console.log(e);
+        }
 		this.triggerError(operation, e);
 	}	
 };
@@ -450,9 +565,9 @@ jsm.core.Component.prototype.makeRequest = function(name, url, getData, postData
 jsm.core.Component.prototype.connect = function(src, event, target, operation) {
 	this.publish(jsm.core.Component.Events.CONNECT, 
 			src, 
-			event.replace(/^output_/, ''), 
+			event,
 			target,  
-			operation.replace(/^input_/, ''), 
+			operation,
 			src === this
 	);
 };
@@ -468,9 +583,9 @@ jsm.core.Component.prototype.connect = function(src, event, target, operation) {
 jsm.core.Component.prototype.disconnect = function(src, event, target, operation) {
 	this.publish(jsm.core.Component.Events.DISCONNECT, 
 			src, 
-			event.replace(/^output_/, ''), 
+			event,
 			target,  
-			operation.replace(/^input_/, ''), 
+			operation,
 			src === this
 	);
 };
@@ -485,7 +600,7 @@ jsm.core.Component.prototype.getInputs = function() {
 	var operations = this.descriptor.getOperations(),
 		inputs = {};
 	for(var j = operations.length; j--; ) {
-		inputs['input_' + operations[j].getRef()] = operations[j].getData('name');
+		inputs[operations[j].getRef()] = {name: operations[j].getData('name'), type: operations[j].getInputs()[0].type};
 	}
 	return inputs;
 };
@@ -501,13 +616,13 @@ jsm.core.Component.prototype.getOutputs = function() {
 		outputs = {};
 	for(var j = operations.length; j--; ) {
 		if(operations[j].getOutputs().length > 0) {
-			outputs['output_' + operations[j].getRef()] = operations[j].getData('name')
+			outputs[operations[j].getRef()] = {name: operations[j].getData('name'), type: operations[j].getOutputs()[0].type};
 		}
 	}
 	
 	var events = this.descriptor.getEvents();
 	for(var j = events.length; j--; ) {
-		outputs['output_' + events[j].getRef()] = events[j].getData('name')
+		outputs[events[j].getRef()] = {name: events[j].getData('name'), type: events[j].getOutputs()[0].type};
 	}
 	return outputs;
 };
@@ -553,15 +668,6 @@ jsm.core.Component.prototype.add = function(composition) {
  */
 jsm.core.Component.prototype.remove = function() {
 	this.publish(jsm.core.Component.Events.REMOVED, this, this.composition);
-	
-	goog.events.removeAll(this.configurationDialog, 'change');
-	
-	this.configurationDialog = null;
-	
-	if(this.element_ && this.element_.parentNode) {
-		this.element_.parentNode.removeChild(this.element_);
-	}
-	this.element_ = null;
 };
 
 

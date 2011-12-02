@@ -37,13 +37,15 @@ jsm.mapper.EMDLMapper.prototype.getDescriptor = function(id, serialized, data) {
  * @override
  */
 jsm.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_config) {
-	var instance = new jsm.core.Component(descriptor, opt_id, opt_config);
+	var instance = new jsm.core.Component(descriptor, opt_id);
 	
 	var f = new Function("exports", descriptor.getData('implementation'));
 	f(instance);
 	if(this.config.processorProvider) {
 		instance.setProcessorManager(this.config.processorProvider.getProcessorManager(instance));
 	}
+    instance.setData('name', descriptor.getData('name'));
+    instance.setConfiguration(opt_config);
 	return instance;
 };
 
@@ -141,7 +143,7 @@ jsm.mapper.EMDLMapper.prototype.updateXmlWithData_ = function(doc, data) {
 jsm.mapper.EMDLMapper.prototype.fillDescriptor_ = function(descriptor, model, implementation, data) {
 	var events = [],
 		operations = [],
-		parameters = [];
+		parameters = [],
 		root = this.parseXML(model);
 		
 	data = data || {};
@@ -154,6 +156,7 @@ jsm.mapper.EMDLMapper.prototype.fillDescriptor_ = function(descriptor, model, im
 	descriptor.setData('description', (root.description && root.description[0]['#text']) || data.description || '');
 	descriptor.setData('implementation', implementation || '');
 	descriptor.setData('model', model || '');
+    descriptor.setData('configTemplate', root.configTemplate && root.configTemplate[0]['#text'] || '');
 	
 	descriptor.setOperations(this.getOperations(root));
 	descriptor.setEvents(this.getEvents(root));
