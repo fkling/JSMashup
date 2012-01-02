@@ -3,6 +3,7 @@ goog.provide('jsm.mapper.JSONMapper');
 goog.require('jsm.mapper.CompositionMapper');
 
 goog.require('goog.json');
+goog.require('goog.async.DeferredList');
 
 /**
  * Interface to parse model files and create
@@ -18,7 +19,7 @@ goog.inherits(jsm.mapper.JSONMapper, jsm.mapper.CompositionMapper);
  * @param {string} id
  * @param {string} model
  * @param {Object} data
- * @return {jsm.core.Composition}
+ * @param {function} callback
  * 
  * @public
  */
@@ -27,47 +28,50 @@ jsm.mapper.JSONMapper.prototype.getComposition = function(id, model, data, callb
 	model = goog.json.parse(model);
 	
 	var composition = new jsm.core.Composition();
-	var max_instances = model.components.length,
-		num_instances = 0, 
-		instances = [],
-		instanceMap = {};
-	
+
 	composition.setId(id);
 	composition.setData(model.data);
 	composition.setData(data);
 	
-	function runWhenFinished() {
-		if(num_instances === max_instances) {
-			composition.setComponents(instances);
-			
-			for(var i = model.connections.length; i--; ) {
-				var c = model.connections[i];
-				composition.addConnection(new jsm.core.composition.Connection(instanceMap[c.source], c.event, instanceMap[c.target], c.operation));
-			}
-			
-			callback(composition);
-		}
-	};
 	
 	
-	
-	for(var i = 0, l = model.components.length; i < l; i++ ) {
-		(function(index, definition) {
-			self.registry.getComponentDescriptorById(definition.component_id, function(descr) {
-				var instance =  descr.getInstance(definition.instance_id, definition.config);
-                instance.setData(definition.data);
+    var def = this.registry.getComponentDescriptorsByIds(goog.array.map(model.components, function(e) {
+        return e.component_id;
+    }));
+
+    def.addCallback(function(descriptors) {
+        var def = [];
+        for(var i = 0, len = descriptors.length; i < len; i++) {
+            var definition = model.components[i];
+            def.push(descriptors[i].getInstance(definition.instance_id, definition.config));
+        }
+        var def_list = goog.async.DeferredList.gatherResults(def);
+        def_list.addCallback(function(instances) {
+            var instance_map = {}, instance;
+
+            for(var i = 0, len = instances.length; i < len; i++) {
+                instance = instances[i];
+                instance.setData(model.components[i].data);
+
                 if(!instance.getData('name')) {
                     instance.setData('name', instance.getDescriptor().getData('name'));
                 }
-				instances[index] = instanceMap[instance.getId()] = instance;
-				num_instances++;
-				runWhenFinished();
-			}, function(){
-				num_instances++;
-				runWhenFinished();
-			});
-		}(i, model.components[i]));
-	}
+                instance_map[instance.getId()] = instance;
+            }
+
+            composition.setComponents(instances);
+
+            for(var i = model.connections.length; i--; ) {
+				var c = model.connections[i];
+				composition.addConnection(new jsm.core.composition.Connection(instance_map[c.source], c.event, instance_map[c.target], c.operation));
+			}
+
+            callback(composition);
+        });
+    }).addErrback(function(msg) {
+
+        throw new Error(msg);
+    });
 };
 
 

@@ -182,7 +182,7 @@ jsm.core.Component.prototype.getIncomingConnections = function() {
 
 /**
  * Returns a list of outgoing connections, meaning where this component
- * is the target.
+ * is the source.
  *
  * @return {Array}
  * @public
@@ -676,7 +676,7 @@ jsm.core.Component.prototype.remove = function() {
  * 
  * @type {Object}
  */
-jsm.core.Component.Events = {
+jsm.core.Component.Events = jsm.core.Component.prototype.Events = {
 		ERROR: 'error',
 		OPSTART: 'opstart',
 		OPEND: 'opend',

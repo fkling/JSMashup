@@ -1,20 +1,5 @@
 goog.provide('jsm.core.registry');
 goog.provide('jsm.core.registry.BaseRegistry');
-goog.provide('jsm.config.registry');
-
-
-/**
- * Registry configuration. `type` should refer to an object inheriting
- * from `jsm.core.registry.BaseRegistry`. The `options` property will
- * be passed to constructor.
- * 
- * @abstract
- * @public
- */
-jsm.config.registry = {
-	type: null,
-	options: {}
-};
 
 
 /**
@@ -57,14 +42,30 @@ jsm.core.registry.BaseRegistry.prototype.getUserComponents = function(success, e
 /**
  * Get component descriptor via ID
  * 
- * @param {string} id the FQN of the component
- * @param {function(Array.<mshupIDE.core.ComponentDescriptor>)} success callback
+ * @param {string} id - the FQN of the component
+ * @param {function(jsm.core.ComponentDescriptor>} success callback
  * @param {function(string)} error callback
+ *
+ * @return {goog.async.Deferred}
  * @public
  */
 jsm.core.registry.BaseRegistry.prototype.getComponentDescriptorById = function(id, success, error) {
 	
 };
+
+/**
+ * Get component descriptors by IDs
+ * 
+ * @param {Array.<string>} ids - the FQNs of the components
+ * @param {function(jsm.core.ComponentDescriptor>} success callback
+ * @param {function(string)} error callback
+ *
+ * @return {goog.async.Deferred}
+ * @public
+ */
+jsm.core.registry.BaseRegistry.prototype.getComponentDescriptorsByIds = function(ids, success, error) {
+};
+
 
 /**
  * Get component descriptor via URL

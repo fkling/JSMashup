@@ -13,6 +13,7 @@ goog.require('goog.dom.xml');
  */
 jsm.mapper.EMDLMapper = function(config) {
 	this.config = config;
+    this.dpreg_ =  jsm.processor.DataProcessorRegistry.getInstance();
 	
 	// cross-browser XML serializer
 	if( !window.XMLSerializer ){
@@ -27,8 +28,12 @@ jsm.mapper.EMDLMapper = function(config) {
  * @override
  */
 jsm.mapper.EMDLMapper.prototype.getDescriptor = function(id, serialized, data) {
-	var decoded = JSON.parse(serialized);
-	
+	var decoded = JSON.parse(serialized),
+        model = this.parseXML(decoded.model);
+
+    // register possible data processors defined in the model
+    this.registerDataProcessors(id, model);
+
 	return this.fillDescriptor_(new jsm.core.ComponentDescriptor(), decoded.model, decoded.implementation, data);
 };
 
@@ -41,9 +46,6 @@ jsm.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_c
 	
 	var f = new Function("exports", descriptor.getData('implementation'));
 	f(instance);
-	if(this.config.processorProvider) {
-		instance.setProcessorManager(this.config.processorProvider.getProcessorManager(instance));
-	}
     instance.setData('name', descriptor.getData('name'));
     instance.setConfiguration(opt_config);
 	return instance;
@@ -95,6 +97,11 @@ jsm.mapper.EMDLMapper.prototype.validate = function(descriptor, valid, invalid) 
 };
 
 /**
+ * Updates the XML document with data from other fields.
+ *
+ * @param {XMLDocument} doc - the XML document
+ * @param {Object} data - a data object
+ *
  * @private
  */
 jsm.mapper.EMDLMapper.prototype.updateXmlWithData_ = function(doc, data) {
@@ -138,13 +145,20 @@ jsm.mapper.EMDLMapper.prototype.updateXmlWithData_ = function(doc, data) {
 
 
 /**
+ * Fills the descriptor with the data in the model.
+ *
+ * @param {jsm.core.ComponentDescriptor} descriptor - the descriptor to set up
+ * @param {XMLDocument} model - the XML model
+ * @param {string} implementation - a JavaScript string
+ * @param {Object} data - additional information
+ *
  * @private
  */
 jsm.mapper.EMDLMapper.prototype.fillDescriptor_ = function(descriptor, model, implementation, data) {
 	var events = [],
 		operations = [],
 		parameters = [],
-		root = this.parseXML(model);
+        root = this.parseXML(model);
 		
 	data = data || {};
 	
@@ -282,6 +296,10 @@ jsm.mapper.EMDLMapper.prototype.getRequests = function(root) {
 	return result;
 };
 
+
+/**
+ * @private
+ */
 jsm.mapper.EMDLMapper.prototype.parseOptions = function(options) {
 	var obj = {};
 	for(var i = 0, l = options.length; i < l; i++) {
@@ -292,6 +310,36 @@ jsm.mapper.EMDLMapper.prototype.parseOptions = function(options) {
 	return obj;
 };
 
+
+/**
+ * @private
+ */
+jsm.mapper.EMDLMapper.prototype.registerDataProcessors = function(cid, model) {
+   var processors = model.processor || [];
+
+   for(var i = 0, len = processors.length; i < len; i++) {
+      if((processors[i]['@'].cls || '').length > 0) { // only if cls is a non empty value
+          var processor = {
+              cls: processors[i]['@'].cls,
+              url: processors[i]['@'].url
+          };
+
+          if(processors[i]['#text']) {
+              // try to parse config as JSON
+              try {
+                  processor.config = goog.json.parse(processors[i]['#text']);
+              }
+              catch(e) {
+                  processor.config = {};
+              }
+          }
+          else {
+              processor.config = {};
+          }
+          this.dpreg_.addDataProcessorConfiguration(cid, processor);
+      }
+   }
+};
 
 /**
  * @private

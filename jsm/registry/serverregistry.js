@@ -7,6 +7,10 @@ goog.require('goog.array');
 goog.require('goog.object');
 goog.require('goog.json');
 goog.require('goog.uri.utils');
+goog.require('goog.async.Deferred');
+goog.require('goog.async.DeferredList');
+goog.require('goog.debug');
+goog.require('goog.debug.Logger');
 
 /**
  * A registry implementation using a server
@@ -63,6 +67,13 @@ jsm.core.registry.ServerRegistry = function(options) {
 	 * @private
 	 */
 	this.userComponentsArray_ = [];
+
+    /**
+     *
+     * @type {goog.debug.Logger}
+     * @private
+     */
+    this.logger_ = new goog.debug.Logger.getLogger('jsm.core.registry.ServerRegistry'); 
 };
 
 goog.inherits(jsm.core.registry.ServerRegistry, jsm.core.registry.BaseRegistry);
@@ -109,8 +120,25 @@ jsm.core.registry.ServerRegistry.prototype.getUserComponents = function(success,
  * @override
  */
 jsm.core.registry.ServerRegistry.prototype.getComponentDescriptorById = function(id, success, error) {
+    var deferred = new goog.async.Deferred(),
+        old_success = success,
+        old_error = error,
+        self = this;
+
+    success = function() {
+        self.logger_.info('Loading of component ' + id + ' successful.');
+        if(old_success) old_success.apply(null, arguments);
+        deferred.callback.apply(deferred, arguments);
+    };
+
+    error = function() {
+        self.logger_.severe('Loading of component ' + id + ' failed: ' + goog.debug.expose(arguments));
+        if(old_error) old_error.apply(null, arguments);
+        deferred.errback.apply(deferred, arguments);
+    };
+
 	if(this.componentDescriptors_[id]) {
-		success(this.componentDescriptors_[id]);
+        success(this.componentDescriptors_[id]);
 	}
 	else {
 		jsm.core.net.makeRequest({
@@ -124,14 +152,46 @@ jsm.core.registry.ServerRegistry.prototype.getComponentDescriptorById = function
 					success(descr);
 				}
 				catch(e) {
-					error(e);
+                    error(e);
 				}
 				
 			},
 			error: error
 		});
 	}
+
+    return deferred;
 };
+
+/**
+ * @override
+ */
+jsm.core.registry.ServerRegistry.prototype.getComponentDescriptorsByIds = function(ids, success, error) {
+    var deferred = new goog.async.Deferred(),
+        list = [];
+
+    for(var i = 0, len = ids.length; i < len; i++) {
+        list.push(this.getComponentDescriptorById(ids[i]));
+    }
+
+    var def_list = new goog.async.DeferredList(list);
+    def_list.addCallback(function(results) {
+        if(goog.array.some(results, function(e) { return e[0] === false; })) {
+            var msg = 'Not every descriptor could be retrieved';
+            if(error) error(msg)
+            deferred.errback(msg);
+        }
+        else {
+            results = goog.array.map(results, function(e) { return e[1]; });
+            if(success) success(results)
+            deferred.callback(results);
+        }
+    });
+
+    return deferred;
+};
+
+
 
 /**
  * @override

@@ -11,11 +11,12 @@ goog.require('jsm.core.Composition');
 goog.require('goog.ui.Component');
 goog.require('goog.object');
 goog.require('goog.array');
+goog.require('goog.debug.FancyWindow');
 
 // add some dependcies
 goog.require('org.reseval.processor.DomainConceptMapper');
 goog.require('org.reseval.processor.ServiceCall');
-goog.require('jsm.processor.JsonProcessorProvider');
+goog.require('jsm.processor.DataProcessorRegistry');
 goog.require('jsm.validator.StaticDomainValidator');
 goog.require('jsm.mapper.EMDLMapper');
 goog.require('jsm.mapper.JSONMapper');
@@ -33,9 +34,17 @@ goog.require('jsm.core.DataTypeMapper');
  * 	- domainValidator: Used to ensure that the data types defined in the component are in the domain
  * 
  * @constructor
+ * @export
  */
 JSMashup = function(config) {
-	window.JSMashup = JSMashup;
+    if(goog.DEBUG) {
+        // Create the debug window.
+        var debugWindow = new goog.debug.FancyWindow('main');
+        debugWindow.setEnabled(true);
+        debugWindow.init();
+    }
+
+	window['JSMashup'] = JSMashup;
 	jsm.core.Session.start();
 	
 	JSMashup.config = config;
@@ -47,6 +56,7 @@ JSMashup = function(config) {
 
 /**
  * @param {jsm.core.registry.BaseRegistry} registry
+ * @export
  */
 JSMashup.setRegistry = function(registry) {
 	this.registry = registry;
@@ -68,6 +78,7 @@ JSMashup.setRegistry = function(registry) {
  * @param {boolean} opt_forceReload Whether to re-fetch the list from the server
  * 
  * @public
+ * @export
  */
 JSMashup.getComponentList = function(callback, error, opt_search, opt_forceReload) {
 	JSMashup.registry.getComponents(callback, error);
@@ -99,15 +110,22 @@ JSMashup.getUserComponentList = function(success, error, opt_search, opt_forceRe
  * @param {function} success A list of search parameters to filter the components
  * 
  * @public
+ * @export
  */
 JSMashup.getComponentDescriptor = function(id, callback, error) {
 	JSMashup.registry.getComponentDescriptorById(id, callback, error);
 };
 
+/**
+ * @export
+ */
 JSMashup.saveComponent = function(descriptor, data, success, error) {
 	JSMashup.registry.saveComponent(descriptor, data, success, error);
 };
 
+/**
+ * @export
+ */
 JSMashup.deleteComponent = function(id, success, error) {
 	JSMashup.registry.deleteComponent(id, success, error);
 };
@@ -121,6 +139,7 @@ JSMashup.deleteComponent = function(id, success, error) {
  * @param {function} invalid
  * 
  * @public
+ * @export
  */
 JSMashup.validateComponent = function(descriptor, valid, invalid) {
 	if(JSMashup.config.componentMapper) {
@@ -135,7 +154,9 @@ JSMashup.validateComponent = function(descriptor, valid, invalid) {
 	}
 };
 
-
+/**
+ * @export
+ */
 JSMashup.getEmptyComponentDescriptor = function() {
 	return new jsm.core.ComponentDescriptor();
 };
@@ -155,6 +176,7 @@ JSMashup.getEmptyComponentDescriptor = function() {
  * @param {boolean} opt_forceReload Whether to re-fetch the list from the server
  * 
  * @public
+ * @export
  */
 JSMashup.getCompositionList = function(callback, opt_search, opt_forceReload) {
 	JSMashup.registry.getCompositions(callback);
@@ -171,6 +193,7 @@ JSMashup.getCompositionList = function(callback, opt_search, opt_forceReload) {
  * @param {boolean} opt_forceReload Whether to re-fetch the list from the server
  * 
  * @public
+ * @export
  */
 JSMashup.getUserCompositionList = function(callback, error, opt_search, opt_forceReload) {
 	JSMashup.registry.getUserCompositions(callback, error);
@@ -186,19 +209,29 @@ JSMashup.getUserCompositionList = function(callback, error, opt_search, opt_forc
  * @param {function} callback A list of search parameters to filter the components
  * 
  * @public
+ * @export
  */
 JSMashup.getComposition = function(id, callback, error) {
 	JSMashup.registry.getComposition(id, callback, error);
 };
 
+/**
+ * @export
+ */
 JSMashup.createComposition = function(model, data, callback, error) {
 	JSMashup.registry.createComposition(model, data, callback, error);
 };
 
+/**
+ * @export
+ */
 JSMashup.saveComposition = function(id, model, data, callback, error) {
 	JSMashup.registry.saveComposition(id, model, data, callback, error);
 };
 
+/**
+ * @export
+ */
 JSMashup.deleteComposition = function(id, callback, error) {
 	JSMashup.registry.deleteComposition(id, callback, error);
 };

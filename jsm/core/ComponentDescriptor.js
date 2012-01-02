@@ -1,9 +1,12 @@
 goog.provide('jsm.core.ComponentDescriptor');
 goog.require('jsm.core.Component');
-goog.require('jsm.parser');
+goog.require('jsm.processor.DataProcessorRegistry');
 
 goog.require('goog.array');
 goog.require('goog.string');
+goog.require('goog.async.Deferred');
+goog.require('goog.debug');
+goog.require('goog.debug.Logger');
 
 /**
  * A mashup component descriptor. Once passed an XML Model file,
@@ -20,7 +23,9 @@ jsm.core.ComponentDescriptor = function(mapper) {
 	this.parameters = [];
 	this.requests = [];
 	this.data = {};
-	this.processorProvider = null;
+	this.processorRegistry = jsm.processor.DataProcessorRegistry.getInstance();
+
+    this.logger_ = goog.debug.Logger.getLogger('jsm.core.ComponentDescriptor');
 };
 
 /**
@@ -231,18 +236,40 @@ jsm.core.ComponentDescriptor.prototype.getData = function(key) {
 
 
 /**
- * Get an instance of the component defined by this descriptor.
+ * Get an instance of the component defined by this descriptor. This is an asynchronous operation.
  * 
  * @param {string} opt_instanceId The ID which should be assigned to the instance. Used
  *                 when a instance is created for a stored composition.
  * @param {Object} opt_config Configuration of the instance. Like the with the ID, this is used
  *                 to restore the configuration of a stored component instance.
- * @return {!jsm.core.Component}
+ * @param {function} opt_callback - Callback which gets the new instance.
+ *
+ * @return {!goog.async.Deferred}
  * 
  * @public
  */
-jsm.core.ComponentDescriptor.prototype.getInstance = function(opt_instanceId, opt_config) {
-	return this.mapper.getInstance(this, opt_instanceId, opt_config);
+jsm.core.ComponentDescriptor.prototype.getInstance = function(opt_instanceId, opt_config, opt_callback) {
+    var self = this;
+    if(goog.isFunction(opt_instanceId)) {
+        opt_callback = opt_instanceId;
+        opt_instanceId = undefined;
+    }
+    else if(goog.isFunction(opt_config)) {
+        opt_callback = opt_config;
+        opt_config = undefined;
+    }
+
+    var deferred = new goog.async.Deferred(),
+        instance = this.mapper.getInstance(this, opt_instanceId, opt_config);
+
+    this.processorRegistry.getProcessorManager(instance, function(manager) {
+        instance.setProcessorManager(manager);
+        self.logger_.info('Instance created: ' + goog.debug.expose(instance));
+        if(opt_callback) opt_callback(instance);
+        deferred.callback(instance);
+    });
+
+    return deferred;
 };
 
 

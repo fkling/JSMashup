@@ -11,6 +11,9 @@ goog.require('goog.array');
 jsm.processor.ProcessorManager = function(component, processors) {
 	this.component = component;
 	this.processors = processors;
+    for(var i = processors.length; i--; ) {
+        processors[i].setComponent(component);
+    }
 };
 
 
