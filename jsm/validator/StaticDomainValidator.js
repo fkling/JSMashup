@@ -46,15 +46,7 @@ jsm.validator.StaticDomainValidator.prototype.validateComponent = function(descr
 	}
 	
 	for(var i = operations.length; i--;) {
-		var outputs = operations[i].getOutputs(),
-			inputs = operations[i].getInputs();
-		
-		for(var j = outputs.length; j--;) {
-			var out = outputs[j];
-			if(!this.isInDomain(out.type)) {
-				errors.push(this.parseStatement_(this.componentInvalidMessage, out.type, operations[i].getRef()))
-			}
-		}
+		var inputs = operations[i].getInputs();
 		for(var j = inputs.length; j--;) {
 			var inp = inputs[j];
 			if(!this.isInDomain(inp.type)) {

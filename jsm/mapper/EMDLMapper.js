@@ -44,8 +44,10 @@ jsm.mapper.EMDLMapper.prototype.getDescriptor = function(id, serialized, data) {
 jsm.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_config) {
 	var instance = new jsm.core.Component(descriptor, opt_id);
 	
-	var f = new Function("exports", descriptor.getData('implementation'));
-	f(instance);
+	var f = new Function("exports", descriptor.getData('implementation')),
+        fn = {};
+    f(fn);
+	instance.fn = fn;
     instance.setData('name', descriptor.getData('name'));
     instance.setConfiguration(opt_config);
 	return instance;
@@ -196,9 +198,7 @@ jsm.mapper.EMDLMapper.prototype.getOperations = function(root) {
 		operation.setInputs(goog.array.map(op.input || [], function(input) {
 			return input['@'];
 		}));
-		operation.setOutputs(goog.array.map(op.output || [], function(output) {
-			return output['@'];
-		}));
+        operation.setTrigger(op['@'].triggers || '');
 		operation.setDependencies(op['@'].dependsOn ? op['@'].dependsOn.split(/\s*,\s*/) : []);
 		operation.setData('name', op['@'].name || '');
 		operation.setData('description', op.description ? op.description[0]['#text'] : '');
@@ -286,7 +286,6 @@ jsm.mapper.EMDLMapper.prototype.getRequests = function(root) {
 		result.push({
 			url: request.url && request.url[0]['#text'] || '',
 			ref: request['@'].ref,
-			runsOn: request['@'].runsOn,
 			triggers: request['@'].triggers,
 			parameters: parameters,
 			data: data,

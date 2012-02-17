@@ -40,7 +40,7 @@ jsm.processor.ProcessorManager.prototype.perform = function(operation, params, c
 			else {
 				callback(operation, data);
 			}
-		}, 10)
+		}, 0)
 	};
 	next(params);
 };
@@ -59,7 +59,7 @@ jsm.processor.ProcessorManager.prototype.triggerEvent = function(event, data, ca
 			else {
 				callback(event, data);
 			}
-		}, 10)
+		}, 0)
 	};
 	next(data);
 };
@@ -79,7 +79,7 @@ jsm.processor.ProcessorManager.prototype.makeRequest = function(name, config, ca
 			else {
 				callback(name, config);
 			}
-		}, 10)
+		}, 0)
 	};
 	next(name, config);
 };

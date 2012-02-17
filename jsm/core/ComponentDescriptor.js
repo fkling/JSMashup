@@ -1,3 +1,5 @@
+/*global goog: true, jsm: true */
+/*jshint strict:false */
 goog.provide('jsm.core.ComponentDescriptor');
 goog.require('jsm.core.Component');
 goog.require('jsm.processor.DataProcessorRegistry');
@@ -265,7 +267,9 @@ jsm.core.ComponentDescriptor.prototype.getInstance = function(opt_instanceId, op
     this.processorRegistry.getProcessorManager(instance, function(manager) {
         instance.setProcessorManager(manager);
         self.logger_.info('Instance created: ' + goog.debug.expose(instance));
-        if(opt_callback) opt_callback(instance);
+        if(opt_callback) {
+            opt_callback(instance);
+        }
         deferred.callback(instance);
     });
 

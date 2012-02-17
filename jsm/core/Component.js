@@ -1,49 +1,57 @@
+/*global goog: true, jsm: true */
+/*jshint strict:false dot:false*/
+
 goog.provide('jsm.core.Component');
 goog.provide('jsm.core.Component.Events');
 
-goog.require('jsm.core.OperationManager');
-goog.require('jsm.util.OptionMap');
-goog.require('jsm.ui.ConfigurationDialog');
-
-goog.require('goog.pubsub.PubSub');
-goog.require('goog.dom');
 goog.require('goog.array');
+goog.require('goog.dom');
 goog.require('goog.object');
+goog.require('goog.functions');
+goog.require('goog.pubsub.PubSub');
+goog.require('jsm.core.OperationManager');
+goog.require('jsm.ui.ConfigurationDialog');
+goog.require('jsm.util.DataStore');
+goog.require('jsm.util.OptionMap');
+
 
 
 /**
- * This class contains all the runtime logic for components. 
- * 
- * 
+ * This class contains all the runtime logic for components.
+ *
+ *
  */
 jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
-	goog.base(this);
-	this.Events = jsm.core.Component.Events;
-	
-	this.id = opt_id;
-	this.descriptor = componentDescriptor;
+    goog.base(this);
 
-	this.requests = {};
-    this.data = {};
-	
-	goog.array.forEach(this.descriptor.getRequests(), function(request) {
-		this.requests[request.ref] = request;
-	}, this);
-	
-	this.operationManager = new jsm.core.OperationManager(this, this.descriptor.getOperations());
+    this.id = opt_id;
+    this.descriptor = componentDescriptor;
+    this.fn = {};
+    this.requests = {};
+    this.events_ = {};
 
-	if(opt_config) {
-		this.configuration_ = opt_config;
-	}
+    goog.array.forEach(this.descriptor.getRequests(), function(request) {
+        this.requests[request.ref] = request;
+    }, this);
+
+    goog.array.forEach(this.descriptor.getEvents(), function(event) {
+        this.events_[event.ref] = event;
+    }, this);
+
+    this.operationManager = new jsm.core.OperationManager(this, this.descriptor.getOperations());
+
+    if (opt_config) {
+        this.configuration_ = opt_config;
+    }
 
 };
-
 goog.inherits(jsm.core.Component, goog.pubsub.PubSub);
+
+jsm.core.Component = jsm.util.DataStore.attach(jsm.core.Component);
 
 
 /**
  * @type {Object}
- * @public
  */
 jsm.core.Component.prototype.id = null;
 
@@ -63,7 +71,7 @@ jsm.core.Component.prototype.operationManager = null;
 
 /**
  * Data process manager
- * 
+ *
  * @type {jsm.processor.ProcessorManager}
  * @private
  */
@@ -72,27 +80,33 @@ jsm.core.Component.prototype.processorManager = null;
 
 /**
  * Composition this component belongs to
- * 
+ *
  * @private
  */
 jsm.core.Component.prototype.composition = null;
 
 
 /**
+ * Holds the functions which implements the different operations
+ *
+ * @private
+ */
+jsm.core.Component.prototype.methods_ = null;
+
+
+/**
  * @param {string} id
- * 
- * @public
+ *
  */
 jsm.core.Component.prototype.setId = function(id) {
-	if(id) {
-		this.id = id;	
+	if (id) {
+		this.id = id;
 	}
 };
 
 /**
  * @return {string}
- * 
- * @public
+ *
  */
 jsm.core.Component.prototype.getId = function() {
 	return this.id;
@@ -101,8 +115,7 @@ jsm.core.Component.prototype.getId = function() {
 
 /**
  * @return {jsm.ui.ConfigurationDialog}
- * 
- * @public
+ *
  */
 jsm.core.Component.prototype.getConfigurationDialog = function() {
     this.prepareConfigurationDialog_();
@@ -112,8 +125,7 @@ jsm.core.Component.prototype.getConfigurationDialog = function() {
 
 /**
  * @return {jsm.core.ComponentDescriptor}
- * 
- * @public
+ *
  */
 jsm.core.Component.prototype.getDescriptor = function() {
 	return this.descriptor;
@@ -122,8 +134,7 @@ jsm.core.Component.prototype.getDescriptor = function() {
 
 /**
  * @param {string} id
- * 
- * @public
+ *
  */
 jsm.core.Component.prototype.setComposition = function(composition) {
 	this.composition = composition;
@@ -131,8 +142,7 @@ jsm.core.Component.prototype.setComposition = function(composition) {
 
 /**
  * @return {string}
- * 
- * @public
+ *
  */
 jsm.core.Component.prototype.getComposition = function() {
 	return this.composition;
@@ -141,8 +151,7 @@ jsm.core.Component.prototype.getComposition = function() {
 
 /**
  * @param {jsm.processor.ProcessorManager} manager
- * 
- * @public
+ *
  */
 jsm.core.Component.prototype.setProcessorManager = function(manager) {
 	this.processorManager = manager;
@@ -151,9 +160,8 @@ jsm.core.Component.prototype.setProcessorManager = function(manager) {
 
 /**
  * Returns the list of data processors for this component
- * 
+ *
  * @return {Array}
- * @public
  */
 jsm.core.Component.prototype.getDataProcessors = function() {
 	return this.processorManager.getDataProcessors();
@@ -164,13 +172,12 @@ jsm.core.Component.prototype.getDataProcessors = function() {
  * is the target.
  *
  * @return {Array}
- * @public
  */
 jsm.core.Component.prototype.getIncomingConnections = function() {
     var result = [],
         id = this.getId();
 
-    if(this.composition) {
+    if (this.composition) {
         result = goog.array.filter(this.composition.getConnections(), function(connection) {
             return id == connection.target;
         });
@@ -185,13 +192,12 @@ jsm.core.Component.prototype.getIncomingConnections = function() {
  * is the source.
  *
  * @return {Array}
- * @public
  */
 jsm.core.Component.prototype.getOutgoingConnections = function() {
     var result = [],
         id = this.getId();
 
-    if(this.composition) {
+    if (this.composition) {
         result = goog.array.filter(this.composition.getConnections(), function(connection) {
             return id == connection.source;
         });
@@ -202,45 +208,16 @@ jsm.core.Component.prototype.getOutgoingConnections = function() {
 
 
 /**
- * @param {Object}
- */
-jsm.core.Component.prototype.setData = function(data, value, overwrite) {
-	if(arguments.length == 2 && goog.isString(data)) {
-		this.data[data] = value;
-	}
-	else {
-		if(overwrite) {
-			this.data = data;
-		}
-		else {
-			for(var name in data) {
-				if(data.hasOwnProperty(name)) {
-					this.data[name] = data[name];
-				}
-			}
-		}
-	}
-};
-
-/**
- * @param {Object} a map of jsm.core.Parameter 
- */
-jsm.core.Component.prototype.getData = function(key) {
-	if(goog.isString(key)) {
-		return this.data[key];
-	}
-	return this.data;
-};
-
-
-/**
  * Gets the content node of the component.
- * 
+ *
  * @return {?Element}
- * 
- * @public
+ *
  */
 jsm.core.Component.prototype.getContentNode = function() {
+    var name = 'getContentNode';
+    if(goog.isFunction(this.fn[name])) {
+        return this.fn[name]();
+    };
 	return null;
 };
 
@@ -250,7 +227,6 @@ jsm.core.Component.prototype.getContentNode = function() {
  *
  * @return {?Element}
  *
- * @public
  */
 jsm.core.Component.prototype.getConfigurationElement = function() {
     this.prepareConfigurationDialog_();
@@ -261,10 +237,10 @@ jsm.core.Component.prototype.getConfigurationElement = function() {
  * @private
  */
 jsm.core.Component.prototype.prepareConfigurationDialog_ = function() {
-    if(!this.configurationDialog) {
+    if (!this.configurationDialog) {
         this.configurationDialog = new jsm.ui.ConfigurationDialog(this.descriptor.getParameters(), this.getConfigurationTemplate());
         this.configurationDialog.createDom();
-        if(this.configuration_) {
+        if (this.configuration_) {
             this.setConfiguration(this.configuration_);
         }
         goog.events.listen(this.configurationDialog, 'change', function() {
@@ -285,15 +261,18 @@ jsm.core.Component.prototype.prepareConfigurationDialog_ = function() {
  * @private
  */
 jsm.core.Component.prototype.getConfigurationTemplate = function() {
+    var name = 'getConfigurationTemplate';
+    if(goog.isFunction(this.fn[name])) {
+        return this.fn[name]();
+    }
     return this.descriptor.getData('configTemplate') || null;
 };
 
 
 /**
  * Update the display of a component - can be overridden by implementation
- * 
- * 
- * @public
+ *
+ *
  */
 jsm.core.Component.prototype.update = function() {
 };
@@ -303,17 +282,18 @@ jsm.core.Component.prototype.update = function() {
  *
  */
 jsm.core.Component.prototype.validate = function() {
-    if(this.validateInternal_) {
-        return this.validateInternal_(this.getConfiguration());
+    var name = 'validate';
+    if (goog.isFunction(this.fn[name])) {
+        return this.fn[name](this.getConfiguration());
     }
-    return true;  
+    return true;
 };
 
 
 /**
  * Returns a option name - value mapping.
- * 
- * @return {Object.<string, {value: string, display: string}} the configuration 
+ *
+ * @return {Object.<string, {value: string, display: string}} the configuration
  */
 jsm.core.Component.prototype.getConfiguration = function() {
     this.prepareConfigurationDialog_();
@@ -323,7 +303,7 @@ jsm.core.Component.prototype.getConfiguration = function() {
 /**
  * Sets the configuration of the component. The values must be objects
  * in {@code {value: string, display: string}} form.
- * 
+ *
  * @param {Object.<string, {value: string, display: string}} config
  */
 jsm.core.Component.prototype.setConfiguration = function(config) {
@@ -336,326 +316,429 @@ jsm.core.Component.prototype.setConfiguration = function(config) {
  * Calls an operation of the component. If the component
  * has a method {@code op_operation}, this method is expected to
  * implement the logic for this operation.
- * 
+ *
  * Calls data converters in reverse order.
- * 
- * @param {string} operation the name of the operation
- * @param {Object.<string, ?>} params parameters
- * @public
+ *
+ * @param {string} operation the name of the operation.
+ * @param {Object.<string, ?>} params parameters.
  */
 jsm.core.Component.prototype.perform = function(operation, message) {
-	var op = this.operationManager.getOperation(operation),
-		self = this;
-	if(op) {	
-		// record operation in history
-		this.operationManager.record(operation, message);
-		
-		if(this.operationManager.hasUnresolvedDependencies(operation)) {
-			return;
-		}
-		else {
-			this.publish(jsm.core.Component.Events.OPSTART, this, operation);
-			this.processorManager.perform(operation, message, function(opertion, message) {
-				self.performInternal(operation, message.body);
-			});
-		}
-	}
-	else {
-		throw new Error('[Operation call error] Component {' + this.name + '} does not support operation' + operation);
-	}
+    var op = this.operationManager.getOperation(operation),
+    self = this;
+    if (op) {
+        // record operation in history
+        this.operationManager.record(operation, message);
+
+        if (this.operationManager.hasUnresolvedDependencies(operation)) {
+            return;
+        }
+        else {
+            this.publish(jsm.core.Component.Events.OPSTART, this, operation);
+            this.processorManager.perform(operation, message, function(operation, message) {
+                self.performInternal(operation, message.body);
+            });
+        }
+    }
+    else {
+        throw new Error('[Operation call error] Component {' + this.name + '} does not support operation' + operation);
+    }
 };
 
 /**
  * Calls an operation of the component. If the component
- * has a method {@code op_operation}, this method is expected to
+ * has a method {@code this.fn[operation]}, this method is expected to
  * implement the logic for this operation.
- * 
- * @param {string} operation the name of the operation
- * @param {Object.<string, ?>} params parameters
+ *
+ * @param {string} operation the name of the operation.
+ * @param {Object} message_body the parameters passed from the event.
  * @private
  */
 jsm.core.Component.prototype.performInternal = function(operation, message_body) {
-	var op = this.operationManager.getOperation(operation),
-		func;
-	
-	var self = this;
-	func = this['op_' + operation];
+    var op = this.operationManager.getOperation(operation),
+        self = this,
+        trigger = op.getTrigger(),
+        func;
 
-	// if the operation is synchronous or there is no implemented method,  
-	// we can mark the operation is finished automatically
-	if(!op.isAsync() || !func) {
-		var old_func = func || function(){ return {};};
-		func = function(message_body) {
-			var data = old_func.call(this, message_body);
-			this.markOperationAsFinished(operation);
-			if(op.getOutputs().length > 0) {
-			    this.triggerEvent(operation, data || {});
-			}
-		};
-	}
+    // This is the function to call for this operation. If no function is registered,
+    // we create a dummy function
+    func = this.fn[operation] || function() { return arguments[1] || {}; };
 
-	// If there is a request which should be run automatically,
-	// we run it before the actual operation
+    // This is a stripped down version of the component itself and these
+    // methods are available in operation via `this`. This is done to automate
+    // task as much as possible.
 
-	var request = goog.object.findKey(this.requests, function(value) {
-		return value.runsOn === operation;
-	});
+    var this_obj = {
+        'getConfiguration': goog.bind(this.getConfiguration, self),
 
-	if(request) {	
-		this.makeRequest(request, null, null, null, goog.bind(func, this, message_body), message_body);
-	}
-    try {
-        func.call(this, message_body);	
-	}
-	catch (e) {
-        if(window.console) {
-            window.console.log(e);
+        // can be called from inside the operation to mark the operation as finished.
+        'finish': this.createFinishFunction_(operation, trigger),
+
+        // Inside an operation, a named request can be executed. In that case
+        // we again provide some methods to make implementation easier.
+        'makeRequest': goog.bind(function(name, url, getData, postData, cb) {
+            if (name in this.requests) { //named request, trigger event if finished
+                var event = this.requests[name].triggers,
+                    orig_callback = cb;
+
+                // chaining succint request finish calls and operation finish call
+                this_obj['finish'] = goog.functions.sequence(
+                    this.createFinishFunction_(name, event),
+                    this_obj.finish
+                );
+
+                // Wrap the callback. Instead of calling `finishRequest`, returning
+                // a value finishes the request and operation automatically
+                cb = function(response) {
+                    if(goog.isFunction(orig_callback)) {
+                        response = orig_callback.call(this_obj, response);
+                    }
+
+                    if (goog.isDef(response)) {
+                        this_obj.finish(response);
+                    }
+                };
+            }
+
+            // Make the request. If it was not named, the callback
+            // remains unchanged.
+            this.makeRequest(name, url, getData, postData, cb);
+        }, this)
+    };
+
+    // A wrapper which handles the cases if either the operation is called
+    // immediatly or a request was triggered beforehand.
+    function call_operation() {
+
+        // Call the actual implementation passing the generated `this` object.
+        var result = func.apply(this_obj, arguments);
+
+        // If it returns a result we automatically mark the function as finished
+        if (goog.isDef(result)) {
+            this_obj.finish(result);
         }
-		this.triggerError(operation, e);
-	}	
+    }
+
+    // check whether the operation triggers an event or request
+    if (trigger && trigger in this.requests) {
+        // if operation triggers request, the request is performed first
+        // and the result is passed to the defined callback as second argument
+        this_obj['finish'] = this.createFinishFunction_(trigger, this.requests[trigger].triggers);
+        this.makeRequest(trigger, null, null, null, goog.bind(call_operation, this, message_body), message_body);
+    }
+    else {
+        call_operation(message_body);
+    }
 };
 
 
 /**
- * 
+ *
  * @private
- */
+*/
 jsm.core.Component.prototype.markOperationAsFinished = function(operation) {
-	this.publish(jsm.core.Component.Events.OPEND, this, operation);
-	this.operationManager.resolve(operation);
+    this.publish(jsm.core.Component.Events.OPEND, this, operation);
+    this.operationManager.resolve(operation);
+};
+
+
+/** 
+ * Returns a function, which marks an action as finished and triggers an event by name, 
+ * passing the result if provided.
+ *
+ * @param {string} name
+ * @param {string} eventName
+*/
+jsm.core.Component.prototype.createFinishFunction_ = function(name, eventName) {
+    return goog.bind(function finish(result) {
+        if(!finish.called) {
+            finish.called = true;
+            this.markOperationAsFinished(name);
+
+            if(eventName) {
+                this.triggerEvent(eventName, this.prepareEventData_(eventName, result));
+            }
+        }
+    }, this);
+};
+
+/** 
+ * Used prepare the result of an operation or requestas event output.
+ * If the result is an object, it might already be the complete body, 
+ * i.e. each key corresponds to an output paramter of the event. If not,
+ * the result is assigned to each output paramter of the event.
+ * 
+ * @param {string} eventName
+ * @param {?} data
+ * 
+*/ 
+jsm.core.Component.prototype.prepareEventData_ = function(eventName, data) {
+    var event = this.events_[eventName];
+    var body = {},
+    outputs = event.getOutputs();
+
+    // check whether result is already the output or not
+    if (!goog.isObject(data) || goog.array.some(outputs, function(o) { return !(o.name in data); })) {
+        for (var i = outputs.length; i--; ) {
+            body[outputs[i].name] = data;
+        }
+    }
+    else {
+        body = data;
+    }
+    return body;
 };
 
 
 /**
  * Raise event.
- * 
- * @param {string} event name
+ *
+ * @param {string} event name.
  * @param {Object} params
  * @protected
- */
+*/
 jsm.core.Component.prototype.triggerEvent = function(event, message_body) {
-	var self = this;
-	if(goog.isString(message_body)) {
-		message_body = JSON.parse(message_body);
-	}
-	var message = {
-		header: {},
-		body: message_body || {}
-	}
-	this.processorManager.triggerEvent(event, message, function(event, message) {
-		self.triggerEventInternal(event, message);
-	});
+    var self = this;
+    if (goog.isString(message_body)) {
+        message_body = JSON.parse(message_body);
+    }
+    var message = {
+        header: {},
+        body: message_body || {}
+    };
+    this.processorManager.triggerEvent(event, message, function(event, message) {
+        self.triggerEventInternal(event, message);
+    });
 };
 
 /**
  * Raise event.
- * 
- * @param {string} event name
+ *
+ * @param {string} event name.
  * @param {Object} params
  * @private
- */
+*/
 jsm.core.Component.prototype.triggerEventInternal = function(name, message) {
-	this.publish(jsm.core.Component.Events.EVENT, this, name, message);
+    this.publish(jsm.core.Component.Events.EVENT, this, name, message);
 };
 
 
 /**
  * Raise error.
- * 
- * @param {string} event name
+ *
+ * @param {string} event name.
  * @param {Object} params
  * @private
- */
+*/
 jsm.core.Component.prototype.triggerError = function(name, msg) {
-	this.publish(jsm.core.Component.Events.ERROR, this, name, msg);
+    this.publish(jsm.core.Component.Events.ERROR, this, name, msg);
 };
 
 
 /**
- * Used internally to make a named Ajax request, as defined in the 
+ * Used internally to make a named Ajax request, as defined in the
  * component description.
- * 
+ *
  * If {@code postData} is provided, a POST request is performed.
- * 
- * 
- * @param {string} name - the name of the request as defined in description
+ *
+ *
+ * @param {string} name - the name of the request as defined in description.
  * @param {string} url
- * @param {Object.<string, string>} getData - GET data mapping
- * @param {Object.<string, string>} postData - POST data mapping
+ * @param {Object.<string, string>} getData - GET data mapping.
+ * @param {Object.<string, string>} postData - POST data mapping.
  * @param {function(Object)} cb - function being called upon request complication.
- * 									The argument passed is the response text.
- * 
- * @private
- */
-
+ *                                The argument passed is the response text.
+ *
+*/
 jsm.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb, message_body) {
-	if(this.requests[name]) {
-		
-		// passed parameters are evaluated against the configuration parameters and the data received from
-		// an operation
-		var context = {};
-		goog.object.extend(context, this.configurationDialog.getValues(), message_body || {});
-		
-		
-		// prepare GET parameters
-		if(this.requests[name].parameters) {
-			var parameters = jsm.util.OptionMap.get(this.requests[name].parameters, null, context);
-			goog.object.extend(parameters, getData || {});
-			getData = parameters
-		}
-		
-		// prepare POST parameters
-		if(this.requests[name].data) {
-			if(!postData) {
-				postData = this.requests[name].data;
-			}
-			else if(goog.isObject(this.requests[name].data) && goog.isObject(postData)) {
-				var data = jsm.util.OptionMap.get(this.requests[name].data, null, context);
-				goog.object.extend(data, postData);
-				postData = data;
-			}
-		}
-		
-		// set and parse URL if configured
-		if(this.requests[name].url && !url) {
-			url = jsm.util.OptionMap.get({url: this.requests[name].url}, 'url', context);
-		}
-		
-		// if the request should trigger an event at completion, override callback
-		if(this.requests[name].triggers) {
-			cb = function(data) {
-				this.markOperationAsFinished(name);
-				if(goog.isString(data)) {
-					data = JSON.parse(data);
-				}
-				this.triggerEvent(this.requests[name].triggers, data);
-			};
-		}
-	}
-	
+    var request = this.requests[name];
+    var self = this;
+    if (request) {
 
-	if(url) {
-		this.publish(jsm.core.Component.Events.OPSTART, this, name);
-		var config = {
-				url: url,
-				parameters: getData || {},
-				data: postData,
-				success: cb,
-				error: function(msg, e) {
-					this.triggerError(name, e.target.getStatusText());
-				},
-				context: this
-		};
+        // passed parameters are evaluated against the configuration parameters and the data received from
+        // an operation
+        var context = {};
+        goog.object.extend(context, this.configurationDialog.getValues(), message_body || {});
 
-		this.processorManager.makeRequest(name, config, function(name, config) {
-			jsm.core.net.makeRequest(config);
-		});
-	}
+
+        // prepare GET parameters
+        if (request.parameters) {
+            var parameters = jsm.util.OptionMap.get(request.parameters, null, context);
+            goog.object.extend(parameters, getData || {});
+            getData = parameters;
+        }
+
+        // prepare POST parameters
+        if (request.data) {
+            if (!postData) {
+                postData = request.data;
+            }
+            else if (goog.isObject(request.data) && goog.isObject(postData)) {
+                var data = jsm.util.OptionMap.get(request.data, null, context);
+                goog.object.extend(data, postData);
+                postData = data;
+            }
+        }
+
+        // set and parse URL if configured
+        if (request.url && !url) {
+            url = jsm.util.OptionMap.get({url: request.url}, 'url', context);
+        }
+
+        cb = goog.isFunction(cb) ? cb : this.createFinishFunction_(name, request.triggers);
+    }
+
+
+    if (url) {
+        if(name) {
+            this.publish(jsm.core.Component.Events.OPSTART, this, name);
+        }
+
+        var config = {
+            url: url,
+            parameters: getData || {},
+            data: postData,
+            success: cb,
+            error: function(msg, e) {
+                this.triggerError(name, e.target.getStatusText());
+            },
+            context: this
+        };
+
+        this.processorManager.makeRequest(name, config, function(name, config) {
+            jsm.core.net.makeRequest(config);
+        });
+    }
 };
 
 
 /**
  * Connects two components. {@code operation} on {@code target} will
  * be invoked when {@code event} is raised.
- * 
+ *
  * @param {string} event
  * @param {jsm.core.Component} target
  * @param {string} operation
- */
+*/
 jsm.core.Component.prototype.connect = function(src, event, target, operation) {
-	this.publish(jsm.core.Component.Events.CONNECT, 
-			src, 
-			event,
-			target,  
-			operation,
-			src === this
-	);
+    this.publish(jsm.core.Component.Events.CONNECT,
+                 src,
+                 event,
+                 target,
+                 operation,
+                 src === this
+                );
 };
 
 
 /**
  * Disconnects two components.
- * 
+ *
  * @param {string} event
  * @param {jsm.core.Component} target
  * @param {string} operation
- */
+*/
 jsm.core.Component.prototype.disconnect = function(src, event, target, operation) {
-	this.publish(jsm.core.Component.Events.DISCONNECT, 
-			src, 
-			event,
-			target,  
-			operation,
-			src === this
-	);
+    this.publish(jsm.core.Component.Events.DISCONNECT,
+                 src,
+                 event,
+                 target,
+                 operation,
+                 src === this
+                );
 };
 
 
 /**
  * Get possible inputs (operations + configurations)
- * 
- * @public
- */
+ *
+*/
 jsm.core.Component.prototype.getInputs = function() {
-	var operations = this.descriptor.getOperations(),
-		inputs = {};
-	for(var j = operations.length; j--; ) {
-		inputs[operations[j].getRef()] = {name: operations[j].getData('name'), type: operations[j].getInputs()[0].type};
-	}
-	return inputs;
+    var operations = this.descriptor.getOperations(),
+    inputs = {};
+    for (var j = operations.length; j--; ) {
+        inputs[operations[j].getRef()] = {name: operations[j].getData('name'), type: operations[j].getInputs()[0].type};
+    }
+    return inputs;
 };
 
 
 /**
  * Get outputs (events)
- * 
- * @public
- */
+ *
+*/
 jsm.core.Component.prototype.getOutputs = function() {
-	var operations = this.descriptor.getOperations(),
-		outputs = {};
-	for(var j = operations.length; j--; ) {
-		if(operations[j].getOutputs().length > 0) {
-			outputs[operations[j].getRef()] = {name: operations[j].getData('name'), type: operations[j].getOutputs()[0].type};
-		}
-	}
-	
-	var events = this.descriptor.getEvents();
-	for(var j = events.length; j--; ) {
-		outputs[events[j].getRef()] = {name: events[j].getData('name'), type: events[j].getOutputs()[0].type};
-	}
-	return outputs;
+    var outputs = {},
+        events = this.descriptor.getEvents();
+
+    for (var j = events.length; j--; ) {
+        outputs[events[j].getRef()] = {name: events[j].getData('name'), type: events[j].getOutputs()[0].type};
+    }
+    return outputs;
 };
 
 
 /**
  * Should be overridden by implementation
- * 
- * @public
- */
+ *
+*/
 jsm.core.Component.prototype.autorun = function() {
-	
+    var name = 'autorun',
+        this_obj = {
+        'getConfiguration': goog.bind(this.getConfiguration, this),
+
+        // Inside an operation, a named request can be executed. In that case
+        // we again provide some methods to make implementation easier.
+        'makeRequest': goog.bind(function(name, url, getData, postData, cb) {
+            if (name in this.requests) { //named request, trigger event if finished
+                var event = this.requests[name].triggers,
+                    orig_callback = cb;
+
+                // chaining succint request finish calls and operation finish call
+                this_obj['finish'] = this.createFinishFunction_(name, event);
+
+                // Wrap the callback. Instead of calling `finishRequest`, returning
+                // a value finishes the request and operation automatically
+                cb = function(response) {
+                    if(goog.isFunction(orig_callback)) {
+                        response = orig_callback.call(this_obj, response);
+                    }
+
+                    if (goog.isDef(response)) {
+                        this_obj.finish(response);
+                    }
+                };
+            }
+
+            // Make the request. If it was not named, the callback
+            // remains unchanged.
+            this.makeRequest(name, url, getData, postData, cb);
+        }, this)
+    };
+
+
+    if(goog.isFunction(this.fn[name])) {
+        this.fn[name].call(this_obj);
+    }
 };
 
 
 /**
  * Prepares the component for a new run.
- * 
- * @public
- */
+ *
+*/
 jsm.core.Component.prototype.reset = function() {
-	this.operationManager.reset();
+    this.operationManager.reset();
 };
 
 /**
  * Should be called when the component is added to a
  * the composition.
- * 
- * @public
- */
+ *
+ * @param {jsm.core.Composition} composition The composition this component is added to.
+*/
 jsm.core.Component.prototype.add = function(composition) {
-	this.composition = composition;
-	this.publish(jsm.core.Component.Events.ADDED, this, this.composition);
+    this.composition = composition;
+    this.publish(jsm.core.Component.Events.ADDED, this, this.composition);
 };
 
 
@@ -663,27 +746,26 @@ jsm.core.Component.prototype.add = function(composition) {
 /**
  * Should be called when the component is removed from
  * the composition.
- * 
- * @public
- */
+ *
+*/
 jsm.core.Component.prototype.remove = function() {
-	this.publish(jsm.core.Component.Events.REMOVED, this, this.composition);
+    this.publish(jsm.core.Component.Events.REMOVED, this, this.composition);
 };
 
 
 /**
- * List of events 
- * 
+ * List of events
+ *
  * @type {Object}
- */
+*/
 jsm.core.Component.Events = jsm.core.Component.prototype.Events = {
-		ERROR: 'error',
-		OPSTART: 'opstart',
-		OPEND: 'opend',
-		CONFIG_CHANGED: 'config_changed',
-		CONNECT: 'connect',
-		DISCONNECT: 'disconnect',
-		EVENT: 'event',
-		ADDED: 'added',
-		REMOVED: 'removed'
+    ERROR: 'error',
+    OPSTART: 'opstart',
+    OPEND: 'opend',
+    CONFIG_CHANGED: 'config_changed',
+    CONNECT: 'connect',
+    DISCONNECT: 'disconnect',
+    EVENT: 'event',
+    ADDED: 'added',
+    REMOVED: 'removed'
 };

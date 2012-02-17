@@ -1,195 +1,157 @@
 goog.provide('jsm.core.Operation');
 
+goog.require('jsm.util.DataStore');
 
 /**
- * Meta information about an operation.
- * 
+ * Holds the configuration of an operation.
+ * The following options are available:
+ *
+ *  - ref: The name of the function which implements this operation.
+ *         Used internally.
+ *
+ *  - inputs: A list of object of the form
+ *            {
+ *                name: {string} The name of input parameter,
+ *                type: {string} A data type which can be used by the
+ *                               application for validation and conversion
+ *                collection: {boolean} Whether or not the value is an array
+ *            }
+ *
+ *  - dependencies: An array of refs to other operations. These operations must
+ *                  have been executed before this one.
+ *
+ *  - triggers: The ref of the event which is triggerd
+ *              by this operation (if any)
+ *
+ *  - data: An object with additional information, used by the application
+ *
+ *
  * @constructor
  */
 jsm.core.Operation = function() {
-	this.inputs = [];
-	this.outputs = [];
-	this.data = {};
-	this.dependencies = [];
+    this.inputs_ = [];
+    this.dependencies_ = [];
 };
+
+jsm.core.Operation = jsm.util.DataStore.attach(jsm.core.Operation);
 
 /**
  * The name of the function which should be
  * called when the operation is called.
- * 
+ *
  * @type string
  * @private
  */
-jsm.core.Operation.prototype.ref = '';
+jsm.core.Operation.prototype.ref_ = '';
+
 
 /**
+ * A list of inputs the operation accepts.
+ *
+ * @type Array
+ * @private
+ */
+jsm.core.Operation.prototype.inputs_ = null;
+
+
+/**
+ * Refs of other operations which have to be
+ * run before this one.
+ *
+ * @type Array
+ * @private
+ */
+jsm.core.Operation.prototype.dependencies_ = null;
+
+
+/**
+ * Refs of the event which gets triggerd by this operation.
+ *
+ * @type string
+ * @private
+ */
+jsm.core.Operation.prototype.triggers_ = null;
+
+
+/**
+ * Additional data
+ *
  * @type Object
  * @private
  */
-jsm.core.Operation.prototype.inputs = null;
-
-/**
- * @type Object
- * @private
- */
-jsm.core.Operation.prototype.outputs = null;
-
-/**
- * @type Object
- * @private
- */
-jsm.core.Operation.prototype.data = null;
-
-/**
- * @type Object
- * @private
- */
-jsm.core.Operation.prototype.dependencies = null;
+jsm.core.Operation.prototype.data_ = null;
 
 
 /**
- * @type boolean
- * @private
- */
-jsm.core.Operation.prototype.internal = false;
-
-/**
- * @type boolean
- * @private
- */
-jsm.core.Operation.prototype.async = false;
-
-
-/**
- * @param {Object} ref
- * @public
+ * Set the ref name.
+ *
+ * @param {string} ref - The name of the function.
  */
 jsm.core.Operation.prototype.setRef = function(ref) {
-	this.ref = ref;
+    this.ref_ = ref;
 };
 
 
 /**
- * @return {Object}
- * @public
+ * Get the ref name.
+ *
+ * @return {string} The function name.
  */
 jsm.core.Operation.prototype.getRef = function() {
-	return this.ref;
+    return this.ref_;
 };
 
 
 /**
- * @param {Object} inputs
- * @public
+ * Set information about input parameters
+ *
+ * @param {Array} inputs - An array of input parameter objects.
  */
 jsm.core.Operation.prototype.setInputs = function(inputs) {
-	this.inputs = inputs;
+    this.inputs_ = inputs;
 };
 
 
 /**
- * @return {Object}
- * @public
+ * Get information about input parameters.
+ *
+ * @return {Array} The information about input parameters.
  */
 jsm.core.Operation.prototype.getInputs = function() {
-	return this.inputs;
+    return this.inputs_;
 };
 
 
 /**
- * @param {Object} outputs
- * @public
- */
-jsm.core.Operation.prototype.setOutputs = function(outputs) {
-	this.outputs = outputs;
-};
-
-
-/**
- * @return {Object}
- * @public
- */
-jsm.core.Operation.prototype.getOutputs = function() {
-	return this.outputs;
-};
-
-
-/**
- * @param {Object} outputs
- * @public
+ * Sets the dependencies.
+ *
+ * @param {Array} deps - An array of ref names.
  */
 jsm.core.Operation.prototype.setDependencies = function(deps) {
-	this.dependencies = deps;
+    this.dependencies_ = deps;
 };
 
 
 /**
- * @return {Object}
- * @public
+ * Get dependencies.
+ *
+ * @return {Array} the dependencies.
  */
 jsm.core.Operation.prototype.getDependencies = function() {
-	return this.dependencies;
+    return this.dependencies_;
+};
+
+/**
+ * @param {string} event - Name of the event.
+ */
+jsm.core.Operation.prototype.setTrigger = function(event) {
+    this.triggers_ = event;
 };
 
 
 /**
- * @param {boolean} internal
- * @public
+ * @return {string} the name of the event which should be triggered.
  */
-jsm.core.Operation.prototype.setInternal = function(internal) {
-	this.internal = internal;
-};
-
-
-/**
- * @return {boolean}
- * @public
- */
-jsm.core.Operation.prototype.isInternal = function() {
-	return this.internal;
-};
-
-
-/**
- * @param {boolean} internal
- * @public
- */
-jsm.core.Operation.prototype.setAsync = function(async) {
-	this.async = async;
-};
-
-
-/**
- * @return {boolean}
- * @public
- */
-jsm.core.Operation.prototype.isAsync = function() {
-	return this.async;
-};
-
-
-/**
- * @param {Object} data
- * @public
- */
-jsm.core.Operation.prototype.setData = function(data, value) {
-	if(arguments.length == 2) {
-		var d = this.data || (this.data = {});
-		d[data] = value;
-	}
-	else {
-		this.data = data;
-	}
-};
-
-
-/**
- * @return {*}
- * @public
- */
-jsm.core.Operation.prototype.getData = function(key) {
-	if(goog.isString(key)) {
-		return this.data[key];
-	}
-	return this.data;
+jsm.core.Operation.prototype.getTrigger = function() {
+    return this.triggers_;
 };

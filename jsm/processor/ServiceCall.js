@@ -317,7 +317,7 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
 			}
 			this.data[name].message_body = response.dataObject || {};
 			delete this.data[name].message_body.key;
-			if(orig_success) orig_success.call(orig_context, JSON.stringify(this.data[name].dataObject), e);
+			if(orig_success) orig_success.call(orig_context, JSON.parse(JSON.stringify(this.data[name].message_body)), e);
 		};
 		requestConfig.error = function() {
 			if(orig_error) orig_error.apply(orig_context, arguments);
