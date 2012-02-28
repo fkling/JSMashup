@@ -43,16 +43,14 @@ jsm.ui.input.Dropdown.prototype.update = function() {
 	
 	var self = this;
 	if(this.options.has('url')) {
-		var valueMapper = this.options.get('valueMapper'),
-			displayMapper =  this.options.get('displayMapper');
 		
 		jsm.core.net.makeRequest({
 			url: this.options.get('url'), 
 			responseFormat: 'json',
 			success: function(data) {			
 				goog.array.forEach(data, function(datum){
-					var value = goog.getObjectByName(valueMapper, datum),
-						display = goog.getObjectByName(displayMapper, datum),
+					var value = self.options.get('value', datum, null),
+						display =  self.options.get('display', datum, null)
 					    option = goog.dom.createDom('option', {value: value}, goog.dom.createTextNode(display));
 					if(value == self.lastValue_) {
 						option.setAttribute('selected', 'selected');

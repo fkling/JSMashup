@@ -168,6 +168,9 @@ jsm.ui.input.BaseInput.prototype.isEmpty = function() {
 	return this.getValue().value === "";
 };
 
+jsm.ui.input.BaseInput.prototype.clear = function() {
+};
+
 /**
  * @override
  */

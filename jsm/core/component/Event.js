@@ -1,3 +1,5 @@
+/*global goog: true, jsm: true */
+/*jshint strict:false dot:false*/
 goog.provide('jsm.core.Event');
 
 
@@ -7,9 +9,10 @@ goog.provide('jsm.core.Event');
  * @constructor
  */
 jsm.core.Event = function() {
-	this.outputs = {};
-	this.metaData = {};
+	this.outputs_ = [];
 };
+
+jsm.core.Event = jsm.util.DataStore.attach(jsm.core.Event);
 
 /**
  * The name of the function which should be
@@ -18,78 +21,46 @@ jsm.core.Event = function() {
  * @type string
  * @private
  */
-jsm.core.Event.prototype.ref = '';
+jsm.core.Event.prototype.ref_ = '';
 
 /**
- * @type Object
+ * @type Array
  * @private
  */
-jsm.core.Event.prototype.outputs = null;
-
-/**
- * @type Object
- * @private
- */
-jsm.core.Event.prototype.data = null;
+jsm.core.Event.prototype.outputs_ = null;
 
 
 /**
- * @param {Object} ref
+ * @param {string} ref
  * @public
  */
 jsm.core.Event.prototype.setRef = function(ref) {
-	this.ref = ref;
+	this.ref_ = ref;
 };
 
 
 /**
- * @return {Object}
+ * @return {string}
  * @public
  */
 jsm.core.Event.prototype.getRef = function() {
-	return this.ref;
+	return this.ref_;
 };
 
 
 /**
- * @param {Object} outputs
+ * @param {Array} outputs
  * @public
  */
 jsm.core.Event.prototype.setOutputs = function(outputs) {
-	this.outputs = outputs;
+	this.outputs_ = outputs;
 };
 
 
 /**
- * @return {Object}
+ * @return {Array}
  * @public
  */
 jsm.core.Event.prototype.getOutputs = function() {
-	return this.outputs;
-};
-
-
-/**
- * @param {Object} data
- * @public
- */
-jsm.core.Event.prototype.setData = function(data, value) {
-	if(arguments.length == 2) {
-		var d = this.data || (this.data = {});
-		d[data] = value;
-	}
-	else {
-		this.data = data;
-	}
-};
-
-/**
- * @return {*}
- * @public
- */
-jsm.core.Event.prototype.getData = function(key) {
-	if(goog.isString(key)) {
-		return this.data[key];
-	}
-	return this.data;
+	return this.outputs_;
 };

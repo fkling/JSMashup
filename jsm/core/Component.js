@@ -35,7 +35,7 @@ jsm.core.Component = function(componentDescriptor, opt_id, opt_config) {
     }, this);
 
     goog.array.forEach(this.descriptor.getEvents(), function(event) {
-        this.events_[event.ref] = event;
+        this.events_[event.getRef()] = event;
     }, this);
 
     this.operationManager = new jsm.core.OperationManager(this, this.descriptor.getOperations());
@@ -217,7 +217,7 @@ jsm.core.Component.prototype.getContentNode = function() {
     var name = 'getContentNode';
     if(goog.isFunction(this.fn[name])) {
         return this.fn[name]();
-    };
+    }
 	return null;
 };
 
@@ -243,7 +243,10 @@ jsm.core.Component.prototype.prepareConfigurationDialog_ = function() {
         if (this.configuration_) {
             this.setConfiguration(this.configuration_);
         }
-        goog.events.listen(this.configurationDialog, 'change', function() {
+        goog.events.listen(this.configurationDialog, 'change', function(event) {
+            if(goog.isFunction(this.fn.onParameterChange)) {
+                this.fn.onParameterChange(event.target);
+            }
             this.publish(jsm.core.Component.Events.CONFIG_CHANGED, this);
         }, false, this);
     }
@@ -297,7 +300,13 @@ jsm.core.Component.prototype.validate = function() {
  */
 jsm.core.Component.prototype.getConfiguration = function() {
     this.prepareConfigurationDialog_();
-	return this.configurationDialog.getConfiguration();
+    
+    var configuration = this.configurationDialog.getConfiguration();
+
+    if(goog.isFunction(this.fn.getConfiguration)) {
+        return this.fn.getConfiguration(configuration);
+    }
+    return configuration;
 };
 
 /**
@@ -308,6 +317,11 @@ jsm.core.Component.prototype.getConfiguration = function() {
  */
 jsm.core.Component.prototype.setConfiguration = function(config) {
     this.prepareConfigurationDialog_();
+
+    if(goog.isFunction(this.fn.setConfiguration)) {
+        config = this.fn.setConfiguration(config);
+    }
+
 	return this.configurationDialog.setConfiguration(config);
 };
 
@@ -647,7 +661,7 @@ jsm.core.Component.prototype.disconnect = function(src, event, target, operation
                 );
 };
 
-
+//TODO: Refactor UI so that these two methods can be removed
 /**
  * Get possible inputs (operations + configurations)
  *

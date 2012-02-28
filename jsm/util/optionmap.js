@@ -109,9 +109,9 @@ jsm.util.OptionMap.prototype.parseOptions_ = function(options, context, extracto
  * 
  * @public
  */
-jsm.util.OptionMap.prototype.get = function(name) {
+jsm.util.OptionMap.prototype.get = function(name, context, func) {
 	if(name in this.optionsMap_) {
-		return this.getValue_(this.optionsMap_[name]);
+		return this.getValue_(this.optionsMap_[name], context, func);
 	}
 	return null;
 };
@@ -126,8 +126,8 @@ jsm.util.OptionMap.prototype.get = function(name) {
  * 
  * @private
  */
-jsm.util.OptionMap.prototype.getValue_ = function(value) {
-	return  /{.*?}/.test(value) ? this.resolveDvalue_(value, this.context_, this.extractorFunc_) : value;
+jsm.util.OptionMap.prototype.getValue_ = function(value, context, func) {
+	return  /{[^}]+}/.test(value) ? this.resolveDvalue_(value, context || this.context_, func || func === null ? func : this.extractorFunc_) : value;
 };
 
 
@@ -143,11 +143,12 @@ jsm.util.OptionMap.prototype.getValue_ = function(value) {
  * @private
  */
 jsm.util.OptionMap.prototype.resolveDvalue_ = function(dvalue, context, opt_extractor_func) {
-	return dvalue.replace(/{(.*?)}/, function(str, input) {
+	return dvalue.replace(/{([^}]+)}/g, function(str, input) {
 		if(input in context) {
-			return (opt_extractor_func) ? opt_extractor_func(context[input], input, context) : context[input];
+            var value = goog.getObjectByName(input, context);
+			return (opt_extractor_func) ? opt_extractor_func(value, input, context) : value;
 		}
-		return '';
+		return (opt_extractor_func) ? opt_extractor_func(null, input, context) : '';
 	});
 };
 

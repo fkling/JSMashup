@@ -4,6 +4,9 @@ goog.require('jsm.mapper.ComponentMapper');
 goog.require('jsm.parser')
 
 goog.require('goog.array');
+goog.require('goog.json');
+goog.require('goog.dom');
+goog.require('goog.dom.classes');
 goog.require('goog.dom.xml');
 
 /**
@@ -43,10 +46,12 @@ jsm.mapper.EMDLMapper.prototype.getDescriptor = function(id, serialized, data) {
  */
 jsm.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_config) {
 	var instance = new jsm.core.Component(descriptor, opt_id);
-	
-	var f = new Function("exports", descriptor.getData('implementation')),
+
+	var f = new Function("exports, goog", descriptor.getData('implementation')),
         fn = {};
-    f(fn);
+
+    // provide some of closures helper methods
+    f(fn, {dom: goog.dom, json: goog.json});
 	instance.fn = fn;
     instance.setData('name', descriptor.getData('name'));
     instance.setConfiguration(opt_config);

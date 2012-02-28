@@ -88,7 +88,7 @@ jsm.ui.ConfigurationDialog.prototype.getField_ = function(parameter) {
  * @private
  */
 jsm.ui.ConfigurationDialog.prototype.onFieldValueChange_ = function(event) {
-	this.dispatchEvent({type: jsm.ui.input.BaseInput.Events.CHANGE});
+	this.dispatchEvent({type: jsm.ui.input.BaseInput.Events.CHANGE, target: event.target});
 	
 	// update dependent fields
 	var rdeps = this.dependencies[event.target.getName()] || [];

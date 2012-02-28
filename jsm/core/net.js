@@ -32,7 +32,7 @@ jsm.core.net.buildUri = function(uri, parameters, base) {
     var current_uri = goog.Uri.parse(base);
     // resolve relative urls
     var target_uri = goog.Uri.resolve(current_uri, uri);
-    target_uri.setQuery(goog.uri.utils.buildQueryDataFromMap(parameters));
+    target_uri.setQuery(new goog.Uri.QueryData(goog.uri.utils.buildQueryDataFromMap(parameters)));
     if(!goog.uri.utils.haveSameDomain(current_uri.toString(), target_uri.toString()) && jsm.config.net.PROXY_URI) {
     	return goog.uri.utils.appendParam(jsm.config.net.PROXY_URI, jsm.config.net.PROXY_PARAMETER, target_uri.toString());
     }
