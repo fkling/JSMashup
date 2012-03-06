@@ -279,7 +279,7 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
 		if(config.method === 'POST') {
 			var post_data = {
 				key: key,
-				dataRequest: data.getData ? 'yes' : 'no',
+				dataRequest: data.getData ? 'yes' : 'no'
 			};
 			
             // if the configuration defines data to be sent, we use this instead
