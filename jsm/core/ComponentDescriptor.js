@@ -174,6 +174,13 @@ jsm.core.ComponentDescriptor.prototype.getRequests = function() {
 	return this.requests;
 };
 
+jsm.core.ComponentDescriptor.prototype.getRequest = function(name) {
+	return goog.array.find(this.requests, function(r){
+		return r.ref === name;
+	});
+};
+
+
 
 /**
  * @param {Object} a map of jsm.core.Operation

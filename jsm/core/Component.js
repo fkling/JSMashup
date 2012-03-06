@@ -304,7 +304,7 @@ jsm.core.Component.prototype.getConfiguration = function() {
     var configuration = this.configurationDialog.getConfiguration();
 
     if(goog.isFunction(this.fn.getConfiguration)) {
-        return this.fn.getConfiguration(configuration);
+        goog.object.extend(configuration, this.fn.getConfiguration(configuration));
     }
     return configuration;
 };
@@ -571,7 +571,9 @@ jsm.core.Component.prototype.makeRequest = function(name, url, getData, postData
         // passed parameters are evaluated against the configuration parameters and the data received from
         // an operation
         var context = {};
-        goog.object.extend(context, this.configurationDialog.getValues(), message_body || {});
+        goog.object.extend(context, goog.object.map(this.getConfiguration(), function(item) {
+            return item.value;
+        }), message_body || {});
 
 
         // prepare GET parameters
@@ -583,13 +585,13 @@ jsm.core.Component.prototype.makeRequest = function(name, url, getData, postData
 
         // prepare POST parameters
         if (request.data) {
-            if (!postData) {
-                postData = request.data;
-            }
-            else if (goog.isObject(request.data) && goog.isObject(postData)) {
+            if (goog.isObject(request.data) && goog.isObject(postData)) {
                 var data = jsm.util.OptionMap.get(request.data, null, context);
                 goog.object.extend(data, postData);
                 postData = data;
+            }
+            else if (!postData) {
+                postData = request.data;
             }
         }
 

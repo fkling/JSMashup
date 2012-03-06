@@ -1,6 +1,9 @@
 goog.provide('jsm.util.OptionMap');
 
 goog.require('goog.object');
+goog.require('goog.array');
+goog.require('goog.json');
+
 
 /**
  * Provides a means to access 
@@ -88,12 +91,12 @@ jsm.util.OptionMap.prototype.parseOptions_ = function(options, context, extracto
 	options = options || [];
 	var value;
 	for(var k in options) {
-		if(goog.isObject(options[k])) {
-			value = new jsm.util.OptionMap(options[k], context, extractor_func);
-		}
-		else {
+	//	if(goog.isObject(options[k])) {
+	//		value = new jsm.util.OptionMap(options[k], context, extractor_func);
+	//	}
+	//	else {
 			value = options[k];
-		}
+	//	}
 		this.optionsMap_[k] = value;
 		this.optionsArray_.push({name: k, value: value});
 	}
@@ -127,7 +130,25 @@ jsm.util.OptionMap.prototype.get = function(name, context, func) {
  * @private
  */
 jsm.util.OptionMap.prototype.getValue_ = function(value, context, func) {
-	return  /{[^}]+}/.test(value) ? this.resolveDvalue_(value, context || this.context_, func || func === null ? func : this.extractorFunc_) : value;
+    var pattern = /{(?:\w+\()?[^}]+\)?}/;
+    context = context || this.context_;
+    func = func || func === null ? func : this.extractorFunc_;
+    if(goog.isString(value)) {
+        return  pattern.test(value) ? this.resolveDvalue_(value, context, func) : value;
+    }
+    else if(goog.isArray(value)) {
+        return goog.array.map(value, function(value) {
+            return this.getValue_(value, context, func);
+        }, this);
+    }
+    else if(goog.isObject(value)) {
+        return goog.object.map(value, function(value) {
+            return this.getValue_(value, context, func);
+        }, this);
+    }
+    else {
+        return value;
+    }
 };
 
 
@@ -143,13 +164,37 @@ jsm.util.OptionMap.prototype.getValue_ = function(value, context, func) {
  * @private
  */
 jsm.util.OptionMap.prototype.resolveDvalue_ = function(dvalue, context, opt_extractor_func) {
-	return dvalue.replace(/{([^}]+)}/g, function(str, input) {
-		if(input in context) {
-            var value = goog.getObjectByName(input, context);
-			return (opt_extractor_func) ? opt_extractor_func(value, input, context) : value;
-		}
-		return (opt_extractor_func) ? opt_extractor_func(null, input, context) : '';
-	});
+    // values might contain { and } literally, they have to be escaped with \, i.e.
+    // "some value \\{ here \\} {substitute.this}"
+    // to make parsing easier, these values are substituted first with another value
+    var rep_map = {
+        '\\{': "\u0002",
+        '\\}': "\u0003"
+    },
+    self = this;
+
+    // replace escapced { and }
+    dvalue = dvalue.replace(/\\\{|\\\}/g, function(match) {
+        return rep_map[match];
+    });
+
+    // test whether the whole string is a function call
+    // "functionName({to.substitute})"
+    // if it is, the result of the function call is returned instead
+    // of the substituted string
+    var match = dvalue.match(/^(\w+)\(({[^)]*})\)$/),
+        func = function(x) { return x;};
+    if(match) {
+        func = this.func[match[1]] || func;
+        dvalue = match[2];
+    }
+
+    // replace "{foo.bar}" by the corresponding value in the context
+    // and 
+	return func(dvalue.replace(/{([^}]+)}/g, function(str, input) {
+        var value = goog.getObjectByName(input, context);
+		return (opt_extractor_func) ? opt_extractor_func(value || null, input, context) : value || '';
+	}).replace(/\u0002/g, '{').replace(/\u0003/g, '}'));
 };
 
 /**
@@ -197,6 +242,16 @@ jsm.util.OptionMap.prototype.each = function(callback, opt_context) {
 		option = this.optionsArray_[i];
 		callback.call(opt_context, option.name, this.getValue_(option.value), i);
 	}
+};
+
+
+jsm.util.OptionMap.prototype.func = {
+    'parse': function(value) {
+        return goog.json.parse(value);
+    },
+    'stringify': function(value) {
+        return goog.json.serialize(value);
+    }
 };
 
 

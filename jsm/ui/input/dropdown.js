@@ -37,7 +37,7 @@ jsm.ui.input.Dropdown.prototype.update = function() {
 	goog.dom.removeChildren(this.inputElement_);
 	goog.dom.append(this.inputElement_, goog.dom.createDom('option', {value: 0}, goog.dom.createTextNode('Updating...')));
 	if(this.options.has('default')) {
-		var option = goog.dom.createDom('option', {value: this.options.get('default').get('value') || ''}, goog.dom.createTextNode(this.options.get('default').get('display') || 'default'));
+		var option = goog.dom.createDom('option', {value: this.options.get('default').value || ''}, goog.dom.createTextNode(this.options.get('default').display || 'default'));
 		goog.dom.append(this.inputElement_, option);
 	}
 	

@@ -261,69 +261,100 @@ org.reseval.processor.ServiceCall.prototype.triggerEvent = function(event, messa
  * @public
  */
 org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, requestConfig, next) {
+    // get the configuration for this call
 	var config = this.config[name];
 	
+    // if configured
 	if(config && config.url) {
+
 		var data = this.data[name] = this.data[name] || {};
+
+        // get the cache key for this request
 		var key = this.data[name].cacheKey = this.getKey(config, data);
 		
+        // overwrite URL
 		requestConfig.url = config.url;
+
+        // if this a POST request, we have to prepare a special request object
 		if(config.method === 'POST') {
 			var post_data = {
 				key: key,
 				dataRequest: data.getData ? 'yes' : 'no',
-				mappersList: []
 			};
 			
+            // if the configuration defines data to be sent, we use this instead
 			if(config.data) {
-				for(var i = 0, l = config.data.length; i < l; i++) {
-					post_data.mappersList.push(jsm.util.OptionMap.get(config.data[i], null, requestConfig.parameters));
-				}
-			}
-			else {
-				for(var p in (requestConfig.parameters || {})) {
-					if(requestConfig.parameters[p] !== '')
-						post_data.mappersList.push({paramName: p, paramValue: requestConfig.parameters[p]});
-				}
-			}
-			
-			requestConfig.parameters = {};
-			requestConfig.data = JSON.stringify(post_data);
-			requestConfig.contentType = 'application/json';
-		}
-		else {
-			requestConfig.parameters.key = key;
-			
-			if(data.getData) {
-				requestConfig.parameters.data = 'yes';
-			}
-		}
+                // variables ({...}) are substituted from the event request parameters and configuration parameters
+                var context = {
+                    request: requestConfig.parameters,
+                    config: goog.object.map(this.component.getConfiguration(), function(item) {
+                        return item.value;
+                    })
+                };
 
-		
-		var orig_success = requestConfig.success,
-			orig_error = requestConfig.error,
-			orig_complete = requestConfig.complete,
-			orig_context =  requestConfig.context;
-		
-		
-		requestConfig.context = this;
-		requestConfig.complete = function() {
-			if(orig_complete) orig_complete.apply(orig_context, arguments);
-		};
-		requestConfig.success = function(response, e) {
-			response = JSON.parse(response);
-			if(response.cacheKey) {
-				this.data[name].cacheKey = response.cacheKey;
+                var data_map = new jsm.util.OptionMap(config.data, context);
+
+				for(var prop in config.data) {
+                    post_data[prop] = data_map.get(prop);
+				}
 			}
-			this.data[name].message_body = response.dataObject || {};
-			delete this.data[name].message_body.key;
-			if(orig_success) orig_success.call(orig_context, JSON.parse(JSON.stringify(this.data[name].message_body)), e);
-		};
-		requestConfig.error = function() {
-			if(orig_error) orig_error.apply(orig_context, arguments);
-		};
-	}
-	next(name, requestConfig);
+            else {
+                // copy request parameters
+                if(config.includeGet) {
+                    for(var p in (requestConfig.parameters || {})) {
+                        if(requestConfig.parameters[p] !== '') {
+                            post_data[p] = requestConfig.parameters[p];
+                        }
+                    }
+                }
+                
+                // copy post data if it is an object:
+                if(config.includePost) {
+                    if(goog.isObject(requestConfig.data)) {
+                        for(var p in requestConfig.data) {
+                            post_data[p] = requestConfig.data[p];
+                        }
+                    }
+                }
+            }
+
+            requestConfig.parameters = {};
+            requestConfig.data = JSON.stringify(post_data);
+            requestConfig.contentType = 'application/json';
+        }
+        else {
+            requestConfig.parameters.key = key;
+
+            if(data.getData) {
+                requestConfig.parameters.data = 'yes';
+            }
+        }
+
+
+        var orig_success = requestConfig.success,
+        orig_error = requestConfig.error,
+        orig_complete = requestConfig.complete,
+        orig_context =  requestConfig.context;
+
+
+        requestConfig.context = this;
+        requestConfig.complete = function() {
+            if(orig_complete) orig_complete.apply(orig_context, arguments);
+        };
+        requestConfig.success = function(response, e) {
+            response = JSON.parse(response);
+            if(response.cacheKey) {
+                this.data[name].cacheKey = response.cacheKey;
+            }
+            this.data[name].message_body = response.dataObject || {};
+            delete this.data[name].message_body.key;
+            if(orig_success) orig_success.call(orig_context, JSON.parse(JSON.stringify(this.data[name].message_body)), e);
+        };
+        requestConfig.error = function() {
+            if(orig_error) orig_error.apply(orig_context, arguments);
+        };
+    }
+    next(name, requestConfig);
 };
 
 
@@ -331,19 +362,19 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
  * Generates or gets a cache key, based on the actions configuration.
  * 
  * @private
- */
+*/
 org.reseval.processor.ServiceCall.prototype.getKey = function(config, data, header) {
-	var key = jsm.core.Session.getInstance().getId() + this.component.getId() + this.n;
-	
-	if(data && data.cacheKey) {
-		key = data.cacheKey;
-	}
-	
-	if(header && header.cacheKey) {
-		key = header.cacheKey;
-	}
-	if(config && config.useKeyFrom) {
-		key = this.data[config.useKeyFrom].cacheKey || key;
-	}
-	return data.sendData ? null : key;
+    var key = jsm.core.Session.getInstance().getId() + this.component.getId() + this.n;
+
+    if(data && data.cacheKey) {
+        key = data.cacheKey;
+    }
+
+    if(header && header.cacheKey) {
+        key = header.cacheKey;
+    }
+    if(config && config.useKeyFrom) {
+        key = this.data[config.useKeyFrom].cacheKey || key;
+    }
+    return data.sendData || config.useKeyFrom === false ? '' : key;
 };

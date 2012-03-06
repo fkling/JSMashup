@@ -20,6 +20,7 @@ goog.require('jsm.processor.DataProcessorRegistry');
 goog.require('jsm.validator.StaticDomainValidator');
 goog.require('jsm.mapper.EMDLMapper');
 goog.require('jsm.mapper.JSONMapper');
+goog.require('jsm.core.ArgumentMapper');
 goog.require('jsm.core.DataTypeMapper');
 
 
