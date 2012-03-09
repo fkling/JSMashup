@@ -167,70 +167,100 @@ org.reseval.processor.ServiceCall.prototype.onDisconnect_ = function(source, eve
  * @public
  */
 org.reseval.processor.ServiceCall.prototype.perform = function(operation, message, next) {
-	var config = this.config[operation],
-		header = message.header[org.reseval.processor.ServiceCall.HEADER_NAME] || {},
-		data = this.data[operation] = this.data[operation] || {},
-		key = data.cacheKey = this.getKey(config, data, header) || "";
-	
-	if(config && config.url) {
-		
-		var requestConfig = {
-			url: config.url, 
-			responseFormat: 'json',
-			context: this,
-			success: function(response, e) {
-				this.data[operation].cacheKey = response.cacheKey;
-				var dataObject = response.dataObject || {};
-				delete dataObject.key;
-				
-				this.data[operation].message_body = dataObject;
-				
-				if(config.passthrough) {
-					next(message);
-				}
-				else {
-					this.component.markOperationAsFinished(operation);
-					this.component.triggerEvent(operation, dataObject);
-				}
-			},
-			error: function(txt, e) {
-				this.component.triggerError(operation, txt);
-			}
-		};
-		
-		
-		if(config.method === 'POST' || data.sendData) {
-			var post_data = {
-				key: key,
-				dataRequest: data.getData ? 'yes' : 'no',
-				mappersList: []
-			};
-			
-			if(data.sendData) {
-				for(var p in message.body) {
-					post_data.mappersList.push({paramName: p, paramValue: message.body[p]});
-				}
-			}
-			requestConfig.parameters = {};
-			requestConfig.data = JSON.stringify(post_data);
-			requestConfig.contentType = 'application/json';
-			requestConfig.method = "POST";
-		}
-		else {
-			requestConfig.parameters = {};
-			if(key) {
-				requestConfig.parameters.key = key;
-			}
-			if(data.getData) {
-				requestConfig.parameters.data = 'yes';
-			}
-		}
-		
-		jsm.core.net.makeRequest(requestConfig);
-	}
-	else {
-		next(message);
-	}
+    var config = this.config[operation],
+        header = message.header[org.reseval.processor.ServiceCall.HEADER_NAME] || {},
+        data = this.data[operation] = this.data[operation] || {},
+        key = data.cacheKey = this.getKey(config, data, header) || "",
+        context = {
+            config: goog.object.map(this.component.getConfiguration(), function(item) {
+                return item.value;
+            }),
+            input: message.body
+        };
+
+
+    // if there is a service call configured for this operation    
+    if(config && config.url) {
+
+        var requestConfig = {
+            url: config.url, 
+            responseFormat: 'json',
+            context: this,
+            success: function(response, e) {
+                // store cache key for event
+                this.data[operation].cacheKey = response.cacheKey;
+
+                // get the response
+                var dataObject = response.dataObject || {};
+                delete dataObject.key;
+
+                this.data[operation].message_body = dataObject;
+
+                if(config.passthrough) {
+                    next(message);
+                }
+                else {
+                    this.component.markOperationAsFinished(operation);
+                    this.component.triggerEvent(operation, dataObject);
+                }
+            },
+            error: function(txt, e) {
+                this.component.triggerError(operation, txt);
+            }
+        };
+
+        // if POST method is set or we have to data we get from the event to the 
+        // service
+        if(config.method === 'POST' || data.sendData) {
+            var post_data = {
+                key: key,
+                dataRequest: data.getData ? 'yes' : 'no',
+            };
+
+            // if these parameters are set, we have to add those to the post data
+            if(config.sendData && config.sendData.POST) {
+
+                // prepare data map so that values are evaluated against the input and
+                // the configuration
+                var data_map = new jsm.util.OptionMap(config.sendData.POST,context);
+
+                for(var prop in config.sendData.POST) {
+                    post_data[prop] = data_map.get(prop);
+                }
+            }
+
+            // this is data we always have to send:
+            if(config.data && config.data.POST) {
+                // prepare data map so that values are evaluated against the input and
+                // the configuration
+                var data_map = new jsm.util.OptionMap(config.data.POST,context);
+
+                for(var prop in config.sendData.POST) {
+                    post_data[prop] = data_map.get(prop);
+                }
+            }
+
+            requestConfig.parameters = {};
+            requestConfig.data = JSON.stringify(post_data);
+            requestConfig.contentType = 'application/json';
+            requestConfig.method = "POST";
+        }
+        else {
+
+            requestConfig.parameters = {};
+            if(key) {
+                requestConfig.parameters.key = key;
+            }
+            if(data.getData) {
+                requestConfig.parameters.data = 'yes';
+            }
+        }
+
+        jsm.core.net.makeRequest(requestConfig);
+    }
+    else {
+        next(message);
+    }
 };
 
 /**
@@ -239,51 +269,51 @@ org.reseval.processor.ServiceCall.prototype.perform = function(operation, messag
  * Enriches the outgoing data with cacheKey and data if available.
  * 
  * @public
- */
+*/
 org.reseval.processor.ServiceCall.prototype.triggerEvent = function(event, message, next) {
-	var data = {},
-	    message_header = message.header[org.reseval.processor.ServiceCall.HEADER_NAME] || (message.header[org.reseval.processor.ServiceCall.HEADER_NAME] = {})	,
-	    trigger = this.getEventTrigger(event)
-	
-	if(trigger && this.data[trigger]) {
-		data = this.data[trigger];
-		message_header.cacheKey = data.cacheKey;
-		if(data.message_body && this.config[trigger].overwrite) {
-			message.body = data.message_body;
-		}
-	}
-	next(message);
+    var data = {},
+    message_header = message.header[org.reseval.processor.ServiceCall.HEADER_NAME] || (message.header[org.reseval.processor.ServiceCall.HEADER_NAME] = {})	,
+    trigger = this.getEventTrigger(event)
+
+    if(trigger && this.data[trigger]) {
+        data = this.data[trigger];
+        message_header.cacheKey = data.cacheKey;
+        if(data.message_body && this.config[trigger].overwrite) {
+            message.body = data.message_body;
+        }
+    }
+    next(message);
 };
 
 /**
  * @inheritDoc
  * 
  * @public
- */
+*/
 org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, requestConfig, next) {
     // get the configuration for this call
-	var config = this.config[name];
-	
-    // if configured
-	if(config && config.url) {
+    var config = this.config[name];
 
-		var data = this.data[name] = this.data[name] || {};
+    // if configured
+    if(config && config.url) {
+
+        var data = this.data[name] = this.data[name] || {};
 
         // get the cache key for this request
-		var key = this.data[name].cacheKey = this.getKey(config, data);
-		
+        var key = this.data[name].cacheKey = this.getKey(config, data);
+
         // overwrite URL
-		requestConfig.url = config.url;
+        requestConfig.url = config.url;
 
         // if this a POST request, we have to prepare a special request object
-		if(config.method === 'POST') {
-			var post_data = {
-				key: key,
-				dataRequest: data.getData ? 'yes' : 'no'
-			};
-			
+        if(config.method === 'POST') {
+            var post_data = {
+                key: key,
+                dataRequest: data.getData ? 'yes' : 'no'
+            };
+
             // if the configuration defines data to be sent, we use this instead
-			if(config.data) {
+            if(config.data) {
                 // variables ({...}) are substituted from the event request parameters and configuration parameters
                 var context = {
                     request: requestConfig.parameters,
@@ -294,10 +324,10 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
 
                 var data_map = new jsm.util.OptionMap(config.data, context);
 
-				for(var prop in config.data) {
+                for(var prop in config.data) {
                     post_data[prop] = data_map.get(prop);
-				}
-			}
+                }
+            }
             else {
                 // copy request parameters
                 if(config.includeGet) {
@@ -307,7 +337,7 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
                         }
                     }
                 }
-                
+
                 // copy post data if it is an object:
                 if(config.includePost) {
                     if(goog.isObject(requestConfig.data)) {
@@ -376,5 +406,5 @@ org.reseval.processor.ServiceCall.prototype.getKey = function(config, data, head
     if(config && config.useKeyFrom) {
         key = this.data[config.useKeyFrom].cacheKey || key;
     }
-    return data.sendData || config.useKeyFrom === false ? '' : key;
+    return config.useKeyFrom === false ? '' : key;
 };

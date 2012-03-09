@@ -20,8 +20,7 @@ goog.require('jsm.processor.DataProcessorRegistry');
 goog.require('jsm.validator.StaticDomainValidator');
 goog.require('jsm.mapper.EMDLMapper');
 goog.require('jsm.mapper.JSONMapper');
-goog.require('jsm.core.ArgumentMapper');
-goog.require('jsm.core.DataTypeMapper');
+goog.require('jsm.dsl.ConceptHandler');
 
 
 /**
@@ -50,9 +49,6 @@ JSMashup = function(config) {
 	
 	JSMashup.config = config;
 	
-	if(config.argumentMapper) {
-		jsm.core.Composition.setArgumentMapper(config.argumentMapper);
-	}
 };
 
 /**
@@ -147,7 +143,8 @@ JSMashup.validateComponent = function(descriptor, valid, invalid) {
 		// first validate the model
 		JSMashup.config.componentMapper.validate(descriptor, function() {
 			// then the domain
-			JSMashup.config.domainValidator.validateComponent(descriptor, valid, invalid);
+			//JSMashup.config.domainValidator.validateComponent(descriptor, valid, invalid);
+            valid();
 		}, invalid);
 	}
 	else {

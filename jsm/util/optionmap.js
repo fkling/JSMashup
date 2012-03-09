@@ -193,7 +193,11 @@ jsm.util.OptionMap.prototype.resolveDvalue_ = function(dvalue, context, opt_extr
     // and 
 	return func(dvalue.replace(/{([^}]+)}/g, function(str, input) {
         var value = goog.getObjectByName(input, context);
-		return (opt_extractor_func) ? opt_extractor_func(value || null, input, context) : value || '';
+		var result = (opt_extractor_func) ? opt_extractor_func(value || null, input, context) : value;
+        if(!goog.isString(result)) {
+            result = goog.isObject(result) ? goog.json.serialize(result) : result;
+        }
+        return result;
 	}).replace(/\u0002/g, '{').replace(/\u0003/g, '}'));
 };
 

@@ -1,6 +1,9 @@
+/*global jsm:true, goog:true*/
+
 goog.provide('jsm.core.Composition');
 
 goog.require('goog.pubsub.PubSub');
+goog.require('jsm.dsl.SimpleConceptHandler');
 
 /**
  * @param {Array} components
@@ -19,6 +22,8 @@ jsm.core.Composition = function(components, connections) {
 	this.pubsub = new goog.pubsub.PubSub();
 	
 	this.Events = jsm.core.Composition.Events;
+
+    this.conceptHandler = jsm.core.Composition.conceptHandler || new jsm.dsl.SimpleConceptHandler();
 };
 
 goog.inherits(jsm.core.Composition, goog.pubsub.PubSub);
@@ -266,39 +271,6 @@ jsm.core.Composition.prototype.isValid = function(errors) {
         }
     }
 	
-    /*    
-	for(var id in this.components) {
-		var missing_fields = this.components[id].getConfigurationDialog().getInvalidFields(),
-			missing_connections = [],
-			operations = this.components[id].getDescriptor().getOperations();
-		
-		for(var i = operations.length; i--; ) {
-			var operation = operations[i],
-				ref = operation.getRef();
-			if(this.connected_map[id] && this.connected_map[id][ref]) {
-				var missing = [],
-					deps = operation.getDependencies();
-				
-				for(var j = deps.length; j--;) {
-					if(!this.connected_map[id][deps[j]]) {
-						missing.push(deps[j]);
-					}
-				}
-				
-				if (missing.length > 0) {
-					missing_connections.push({operation: operations[ref], missing: missing});
-					valid = false;
-				}
-			}
-		}
-		errors.missing_fields = missing_fields;
-		errors.missing_connections = missing_connections;
-		
-		if(missing_fields.length > 0) {
-			valid = false;
-		}
-	}
-    */
 	return valid_ || errors;
 };
 
@@ -347,16 +319,18 @@ jsm.core.Composition.prototype.connect = function(source, event, target, operati
     if(goog.array.some(event_connections, function(c) {return c.target === targetId && c.op === operation;})) {
         return;
     }
-    event_connections.push({target: targetId, op: operation});
-    var connected = this.connected_map[targetId] || (this.connected_map[targetId] = {});
-    connected[operation] = true;
-    
-    if(jsm.core.Composition.argumentMapper) {
-        jsm.core.Composition.argumentMapper.createMapping(source, event, target, operation);
-    }
 
-    source.connect(source, event, target, operation);
-    target.connect(source, event, target, operation);
+    // Test whether the components are compatible
+    var valid = this.conceptHandler.isCompatible(source.getDescriptor().getEvent(event), target.getDescriptor().getOperation(operation));
+
+    if(valid || confirm("The components don't seem to be compatible. Do you want to connect them anyways?")) {
+        event_connections.push({target: targetId, op: operation});
+        var connected = this.connected_map[targetId] || (this.connected_map[targetId] = {});
+        connected[operation] = true;
+
+        source.connect(source, event, target, operation);
+        target.connect(source, event, target, operation);
+    }
 };
 
 /**
@@ -364,11 +338,11 @@ jsm.core.Composition.prototype.connect = function(source, event, target, operati
  * @param {string} event
  * @param {string} target
  * @param {string} operation
- */
+*/
 jsm.core.Composition.prototype.disconnect = function(source, event, target, operation, isSource){
     var sourceId = source.getId(),
     targetId = target.getId();
-    
+
     if(this.connections[sourceId] && this.connections[sourceId][event]) {
         var event_connections = this.connections[sourceId][event];
         for(var i = event_connections.length; i--; ) {
@@ -379,7 +353,7 @@ jsm.core.Composition.prototype.disconnect = function(source, event, target, oper
             }
         }
     }
-    
+
     if(jsm.core.Composition.argumentMapper) {
         jsm.core.Composition.argumentMapper.removeMapping(source, event, target, operation);
     }
@@ -390,78 +364,80 @@ jsm.core.Composition.prototype.disconnect = function(source, event, target, oper
 
 /**
  * @param {Object}
- */
+*/
 jsm.core.Composition.prototype.setData = function(data, value, overwrite) {
-	if(arguments.length == 2 && goog.isString(data)) {
-		this.data[data] = value;
-	}
-	else {
-		if(overwrite) {
-			this.data = data;
-		}
-		else {
-			for(var name in data) {
-				if(data.hasOwnProperty(name)) {
-					this.data[name] = data[name];
-				}
-			}
-		}
-	}
+    if(arguments.length == 2 && goog.isString(data)) {
+        this.data[data] = value;
+    }
+    else {
+        if(overwrite) {
+            this.data = data;
+        }
+        else {
+            for(var name in data) {
+                if(data.hasOwnProperty(name)) {
+                    this.data[name] = data[name];
+                }
+            }
+        }
+    }
 };
 
 /**
  * @param {Object} a map of jsm.core.Parameter 
- */
+*/
 jsm.core.Composition.prototype.getData = function(key) {
-	if(goog.isString(key)) {
-		return this.data[key];
-	}
-	return this.data;
+    if(goog.isString(key)) {
+        return this.data[key];
+    }
+    return this.data;
 };
 
 /**
  * Handles component's operation start events
  * 
  * @private
- */
+*/
 jsm.core.Composition.prototype.onOperationStart_ = function(component, operation) {
-	this.pubsub.publish('operation_start', component, operation);
+    this.pubsub.publish('operation_start', component, operation);
 };
 
 /**
  * Handles component's operation end events
  * 
  * @private
- */
+*/
 jsm.core.Composition.prototype.onOperationEnd_ = function(component, operation) {
-	this.pubsub.publish('operation_end', component, operation);
+    this.pubsub.publish('operation_end', component, operation);
 };
 
 /**
  * Handles component's events
  * 
  * @private
- */
+*/
 jsm.core.Composition.prototype.onEventTrigger_ = function(source, event, message) {
-	var srcId = goog.isString(source) ? source : source.getId(),
-		self = this;
-	
-	if(this.connections[srcId] && this.connections[srcId][event]
-     && this.connections[srcId][event].length > 0) {
-         goog.array.forEach(this.connections[srcId][event], function(connection) {
-             setTimeout(function() {
-        		 //create a copy of the parameters
-        		 var message_copy = JSON.parse(JSON.stringify(message));
-        		 
-        		 //map input data
-        		 if(jsm.core.Composition.argumentMapper) {
-        			 message_copy.body = jsm.core.Composition.argumentMapper.map(source, event, self.components[connection.target], connection.op,  message_copy.body);
-        		 }
-        		 
-        		 self.components[connection.target].perform(connection.op, message_copy);
-        	 }, 10);
-         });
-     }
+    var srcId = goog.isString(source) ? source : source.getId(),
+    self = this;
+
+    if(this.connections[srcId] && this.connections[srcId][event] && this.connections[srcId][event].length > 0) {
+        goog.array.forEach(this.connections[srcId][event], function(connection) {
+            setTimeout(function() {
+                //create a copy of the parameters
+                var message_copy = JSON.parse(JSON.stringify(message));
+
+                //map input data
+                if(jsm.core.Composition.argumentMapper) {
+                    message_copy.body = self.conceptHandler.convert(
+                        source.getDescriptor().getEvent(event), 
+                        self.components[connection.target].getDescriptor().getOperation(connection.op),
+                        message_copy.body);
+                }
+
+                self.components[connection.target].perform(connection.op, message_copy);
+            }, 0);
+        });
+    }
 };
 
 
@@ -471,7 +447,7 @@ jsm.core.Composition.prototype.onEventTrigger_ = function(source, event, message
  * the arguments are just passed through.
  * 
  * @param {jsm.component.ArgumentMapper} mapper 
- */
+*/
 jsm.core.Composition.setArgumentMapper = function(mapper) {
-	jsm.core.Composition.argumentMapper = mapper;
+    jsm.core.Composition.argumentMapper = mapper;
 };
