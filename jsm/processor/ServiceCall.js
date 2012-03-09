@@ -214,7 +214,7 @@ org.reseval.processor.ServiceCall.prototype.perform = function(operation, messag
         if(config.method === 'POST' || data.sendData) {
             var post_data = {
                 key: key,
-                dataRequest: data.getData ? 'yes' : 'no',
+                dataRequest: data.getData ? 'yes' : 'no'
             };
 
             // if these parameters are set, we have to add those to the post data
