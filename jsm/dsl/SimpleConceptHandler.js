@@ -1,3 +1,6 @@
+/*global goog:true, jsm: true*/
+"use strict";
+
 goog.provide('jsm.dsl.SimpleConceptHandler');
 
 goog.require('jsm.dsl.ConceptHandler');
@@ -31,7 +34,9 @@ jsm.dsl.SimpleConceptHandler.prototype.isCompatible = function(event, operation)
    }
 
    // otherwise check whether the values of the type attributes match
-   var output_types = new goog.structs.Set(event.getOutputs());
+   var output_types = new goog.structs.Set(goog.array.map(event.getOutputs(), function(output) {
+        return output.type;                                                     
+   }));
 
    return goog.array.every(operation.getInputs(), function(input) {
        return input.type === '*' || output_types.contains(input.type);
@@ -51,9 +56,9 @@ jsm.dsl.SimpleConceptHandler.prototype.convert = function(event, operation, data
        mapped_data = {};
 
    // for each input find the corresponding output by type
-   goog.array.forEach(operation.getIntputs(), function(input) {
+   goog.array.forEach(operation.getInputs(), function(input) {
         var matching_output = goog.array.find(outputs, function(output) {
-            return output.name === input.name;
+            return output.type === input.type;
         });
         if(matching_output && matching_output.name in data) {
             mapped_data[input.name] = data[matching_output.name];
@@ -61,7 +66,7 @@ jsm.dsl.SimpleConceptHandler.prototype.convert = function(event, operation, data
         }
    });
 
-   goog.extend(data, mapped_data);
+   goog.object.extend(data, mapped_data);
 
    return data;
 };

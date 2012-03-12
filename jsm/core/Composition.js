@@ -427,12 +427,10 @@ jsm.core.Composition.prototype.onEventTrigger_ = function(source, event, message
                 var message_copy = JSON.parse(JSON.stringify(message));
 
                 //map input data
-                if(jsm.core.Composition.argumentMapper) {
-                    message_copy.body = self.conceptHandler.convert(
-                        source.getDescriptor().getEvent(event), 
-                        self.components[connection.target].getDescriptor().getOperation(connection.op),
-                        message_copy.body);
-                }
+                message_copy.body = self.conceptHandler.convert(
+                    source.getDescriptor().getEvent(event), 
+                    self.components[connection.target].getDescriptor().getOperation(connection.op),
+                    message_copy.body);
 
                 self.components[connection.target].perform(connection.op, message_copy);
             }, 0);

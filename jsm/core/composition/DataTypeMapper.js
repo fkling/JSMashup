@@ -18,78 +18,9 @@ jsm.core.DataTypeMapper = function(config) {
 	if(!this.config.strategy) {
 		this.config.strategy = jsm.core.DataTypeMapper.SIMPLE_DATA_TYPE_COMPARISON;
 	}
-	
-	this.mappings = {};
 };
 
-
-/**
- * Holds the mappings.
- * 
- * @private
- */
-jsm.core.DataTypeMapper.prototype.mappings = null;
-
-
-/**
- * Creates a unique string from the source, event, target and operation;
- * 
- * @param {jsm.core.Component} source
- * @param {string} source
- * @param {jsm.core.Component} target
- * @param {string} operation
- * @return {string}
- * 
- * @private
- */
-jsm.core.DataTypeMapper.prototype.getHash_ = function(source, event, target, operation) {
-	return [source.getId(), event, target.getId(), operation].join(';');
-};
-
-
-/**
- * Sets up a mapping for this particular connection.
- * 
- * @param {jsm.core.Component} source
- * @param {string} source
- * @param {jsm.core.Component} target
- * @param {string} operation
- * 
- * @return {boolean} returns true if every input parameter could be mapped
- * 		to an output parameter, else false.
- * 
- * @public
- */
-jsm.core.DataTypeMapper.prototype.createMapping = function(source, event, target, operation) {
-	var hash = this.getHash_(source, event, target, operation);
-	
-	// don't map twice
-	if(this.mappings[hash]) {
-		return;
-	} 
-	
-	var mapping = this.config.strategy(source, event, target, operation);
-	this.mappings[hash] = mapping;
-	
-	return goog.object.getCount(mapping) === target.getDescriptor().getOperation(operation).getInputs().length;
-};
-
-
-/**
- * Removes a mapping for this particular connection.
- * 
- * @param {jsm.core.Component} source
- * @param {string} source
- * @param {jsm.core.Component} target
- * @param {string} operation
- * 
- * @public
- */
-jsm.core.DataTypeMapper.prototype.removeMapping = function(source, event, target, operation) {
-	var hash = this.getHash_(source, event, target, operation);
-	
-	delete this.mappings[hash];
-};
+goog.inherits(jsm.core.DataTypeMapper, jsm.core.ArgumentMapper);
 
 
 /**
@@ -106,30 +37,7 @@ jsm.core.DataTypeMapper.prototype.removeMapping = function(source, event, target
  * @public
  */
 jsm.core.DataTypeMapper.prototype.map = function(source, event, target, operation, data) {
-	var mapping = this.mappings[this.getHash_(source, event, target, operation)] || {};
-	
-	// push to temporary object first to not override possible 
-	// existing keys
-	var tmp_data = {}, replaced = [];
-	
-	for(var source in mapping) {
-		if(source in data) {
-			var target = mapping[source];
-            if(target !== source) {
-                tmp_data[target] = data[source];
-                replaced.push(source);
-            }
-		}
-	}
-	
-	goog.object.extend(data, tmp_data);
-	
-	// remove replaced keys
-	for(var i = replaced.length; i--; ) {
-		delete data[replaced[i]];
-	}
-	
-	return data;
+    return this.config.strategy(source, event, target, operation, data);
 };
 
 
@@ -140,20 +48,21 @@ jsm.core.DataTypeMapper.prototype.map = function(source, event, target, operatio
  * 
  * @public
  */
-jsm.core.DataTypeMapper.SIMPLE_DATA_TYPE_COMPARISON = function(source, event, target, operation) {
+jsm.core.DataTypeMapper.SIMPLE_DATA_TYPE_COMPARISON = function(source, event, target, operation, data) {
 	var outputs = source.getDescriptor().getEvent(event).getOutputs(),
-		inputs = target.getDescriptor().getOperation(operation).getInputs(),
-		mapping = {}, ga = goog.array;
+		inputs = target.getDescriptor().getOperation(operation).getInputs();
 	
-	ga.forEach(inputs, function(input) {
-		var output = ga.find(outputs, function(output)  {
+	goog.array.forEach(inputs, function(input) {
+		var output = goog.array.find(outputs, function(output)  {
 			return output.type === input.type;
 		});
 		
-		if(output) {
-			mapping[output.name] = input.name;
+		if(output && output.name in data) {
+            var val = data[output.name];
+            delete data[output.name];
+			data[input.name] = val;
 		}
 	});
 	
-	return mapping;
+	return data;
 };

@@ -21,6 +21,8 @@ goog.require('jsm.validator.StaticDomainValidator');
 goog.require('jsm.mapper.EMDLMapper');
 goog.require('jsm.mapper.JSONMapper');
 goog.require('jsm.dsl.ConceptHandler');
+goog.require('jsm.dsl.SimpleConceptHandler');
+goog.require('jsm.dsl.HierarchicalConceptHandler');
 
 
 /**
@@ -46,6 +48,8 @@ JSMashup = function(config) {
 
 	window['JSMashup'] = JSMashup;
 	jsm.core.Session.start();
+
+    jsm.core.Composition.conceptHandler = config.conceptHandler;
 	
 	JSMashup.config = config;
 	

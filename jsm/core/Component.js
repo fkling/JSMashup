@@ -278,6 +278,10 @@ jsm.core.Component.prototype.getConfigurationTemplate = function() {
  *
  */
 jsm.core.Component.prototype.update = function() {
+    var name = 'update';
+    if (goog.isFunction(this.fn[name])) {
+        this.fn[name]();
+    }
 };
 
 /**
