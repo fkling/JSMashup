@@ -313,7 +313,7 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
             };
 
             // if the configuration defines data to be sent, we use this instead
-            if(config.data) {
+            if(config.sendData && config.sendData.POST) {
                 // variables ({...}) are substituted from the event request parameters and configuration parameters
                 var context = {
                     request: requestConfig.parameters,
@@ -322,9 +322,9 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
                     })
                 };
 
-                var data_map = new jsm.util.OptionMap(config.data, context);
+                var data_map = new jsm.util.OptionMap(config.sendData.POST, context);
 
-                for(var prop in config.data) {
+                for(var prop in config.sendData.POST) {
                     post_data[prop] = data_map.get(prop);
                 }
             }

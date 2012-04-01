@@ -179,14 +179,17 @@ jsm.util.OptionMap.prototype.resolveDvalue_ = function(dvalue, context, opt_extr
     });
 
     // test whether the whole string is a function call
-    // "functionName({to.substitute})"
+    // "{functionName(to.substitute)}"
     // if it is, the result of the function call is returned instead
     // of the substituted string
-    var match = dvalue.match(/^(\w+)\(({[^)]*})\)$/),
+    var match = dvalue.match(/^{(\w+)\(([^)]*)\)}$/),
         func = function(x) { return x;};
+
     if(match) {
         func = this.func[match[1]] || func;
         dvalue = match[2];
+        var value = goog.getObjectByName(dvalue, context);
+        return  func((opt_extractor_func) ? opt_extractor_func(value || null, dvalue, context) : value);
     }
 
     // replace "{foo.bar}" by the corresponding value in the context
@@ -251,7 +254,7 @@ jsm.util.OptionMap.prototype.each = function(callback, opt_context) {
 
 jsm.util.OptionMap.prototype.func = {
     'parse': function(value) {
-        return goog.json.parse(value);
+        return goog.isObject(value) ? value : goog.json.parse(value);
     },
     'stringify': function(value) {
         return goog.json.serialize(value);

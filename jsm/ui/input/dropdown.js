@@ -1,7 +1,10 @@
+/*global goog:true, jsm:true*/
+
 goog.provide('jsm.ui.input.Dropdown');
 goog.require('jsm.ui.input.BaseInput');
 
 goog.require('goog.dom');
+goog.require('goog.object');
 
 /**
  * Implements a dropdown field.
@@ -26,6 +29,12 @@ jsm.ui.input.Dropdown.prototype.renderInternal_ = function() {
 		this.eh.listen(this.inputElement_, goog.events.EventType.CHANGE, function() {
 			this.dispatchEvent(jsm.ui.input.BaseInput.Events.CHANGE);
 		}, false, this);
+
+        if(this.options.has('items')) {
+            goog.object.forEach(this.options.get('items'), function(value, name){
+                goog.dom.append(this.inputElement_, goog.dom.createDom('option', {value: value}, goog.dom.createTextNode(name)));
+            }, this);
+        }
 	}
 	return this.inputElement_;
 };
@@ -50,8 +59,8 @@ jsm.ui.input.Dropdown.prototype.update = function() {
 			success: function(data) {			
 				goog.array.forEach(data, function(datum){
 					var value = self.options.get('value', datum, null),
-						display =  self.options.get('display', datum, null)
-					    option = goog.dom.createDom('option', {value: value}, goog.dom.createTextNode(display));
+						display =  self.options.get('display', datum, null);
+                        option = goog.dom.createDom('option', {value: value}, goog.dom.createTextNode(display));
 					if(value == self.lastValue_) {
 						option.setAttribute('selected', 'selected');
 					}			
@@ -64,7 +73,7 @@ jsm.ui.input.Dropdown.prototype.update = function() {
 		});
 	}
 	else if(this.options.has('items')) {
-		this.options.get('items').each(function(name, value){
+        goog.object.forEach(this.options.get('items'), function(value, name){
 			goog.dom.append(this.inputElement_, goog.dom.createDom('option', {value: value}, goog.dom.createTextNode(name)));
 		}, this);
 	}
@@ -89,10 +98,12 @@ jsm.ui.input.Dropdown.prototype.getValue = function() {
  * @override
  */
 jsm.ui.input.Dropdown.prototype.setValue = function(value) {
-	if(!this.inputElement_) this.renderInternal_();
+	if(!this.inputElement_) {
+        this.renderInternal_();
+    }
 	this.lastDisplay_ = value.display;
 	this.lastValue_ = value.value;
 	this.dispatchEvent({
-	      type: jsm.ui.input.BaseInput.Events.CHANGE
+        type: jsm.ui.input.BaseInput.Events.CHANGE
 	});
 };

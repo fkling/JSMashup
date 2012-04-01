@@ -20,6 +20,7 @@ jsm.ui.input.Autocomplete = function(name, label, opt_options) {
 	this.lastDisplay_ = '';
 	this.lastValue_ = '';
 	this.data = [];
+    this.matcher_ = null;
 	jsm.ui.input.BaseInput.call(this, name, label, opt_options);
 };
 
@@ -38,7 +39,7 @@ jsm.ui.input.Autocomplete.prototype.renderInternal_ = function() {
 	
 		var renderer = new goog.ui.AutoComplete.Renderer();
 		var inputhandler = new goog.ui.AutoComplete.InputHandler(null, null, false, 300);
-		var matcher = new jsm.ui.input.autocomplete.Matcher(this.options.get('search_parameter'), 
+		var matcher = this.matcher_ = new jsm.ui.input.autocomplete.Matcher(this.options.get('search_parameter'), 
 				this.options.get('url'), 
                 function(txt) {
                     self.data = JSON.parse(txt);
@@ -75,6 +76,13 @@ jsm.ui.input.Autocomplete.prototype.renderInternal_ = function() {
        inputhandler.attachInputs(this.inputElement_);
     }
     return 	this.inputElement_
+};
+
+jsm.ui.input.Autocomplete.prototype.update = function() {
+    if(this.matcher_) {
+        // dirty hack to update the URL
+        this.matcher_.url_ = this.options.get('url');
+    }
 };
 
 jsm.ui.input.Autocomplete.prototype.getDisplay_ = function(value) {
