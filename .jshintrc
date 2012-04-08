@@ -1,0 +1,14 @@
+{
+    "predef": [
+        "jsm",
+        "goog"
+    ],
+
+    "curly": true,
+    "latedef": true,
+    "newcap": true,
+    "nonew": true,
+    "undef": true,
+    "strict": false,
+    "sub": true
+}

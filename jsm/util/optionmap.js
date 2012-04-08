@@ -25,9 +25,9 @@ goog.require('goog.json');
  * @param {Array} options an array of option objects (might be nested)
  * @param {Object} opt_context a name map to look up {name} in string values
  * @param {function(?, string, Object): string=} opt_extractorFunc a function to extract the value
- * 								for <code>{name}</code> from the name map. Takes three parameters: The value
- *                              of <code>opt_context[name]</code>, <code>name</code> and 
- *                              <code>opt_context</code>
+ *      for <code>{name}</code> from the name map. Takes three parameters: The value
+ *      of <code>opt_context[name]</code>, <code>name</code> and 
+ *      <code>opt_context</code>
  * @constructor
  */
 jsm.util.OptionMap = function(options, opt_context, opt_extractorFunc) {
@@ -81,9 +81,9 @@ jsm.util.OptionMap.prototype.extractorFunc_ = null;
  * @param {Array} options an array of options objects (might be nested)
  * @param {Object} opt_context a name map to look up {name} in string values
  * @param {function} opt_extractorFunc a function to extract the value
- * 								for <code>{name}</code> from the name map. Takes three parameters: The value
- *                              of <code>opt_context[name]</code>, <code>name</code> and 
- *                              <code>opt_context</code>
+ *      for <code>{name}</code> from the name map. Takes three parameters: The value
+ *      of <code>opt_context[name]</code>, <code>name</code> and 
+ *      <code>opt_context</code>
  *                              
  * @private
  */
@@ -130,7 +130,7 @@ jsm.util.OptionMap.prototype.get = function(name, context, func) {
  * @private
  */
 jsm.util.OptionMap.prototype.getValue_ = function(value, context, func) {
-    var pattern = /{(?:\w+\()?[^}]+\)?}/;
+    var pattern = /\{(?:\w+\()?[^}]+\)?\}/;
     context = context || this.context_;
     func = func || func === null ? func : this.extractorFunc_;
     if(goog.isString(value)) {
@@ -182,7 +182,7 @@ jsm.util.OptionMap.prototype.resolveDvalue_ = function(dvalue, context, opt_extr
     // "{functionName(to.substitute)}"
     // if it is, the result of the function call is returned instead
     // of the substituted string
-    var match = dvalue.match(/^{(\w+)\(([^)]*)\)}$/),
+    var match = dvalue.match(/^\{(\w+)\(([^)]*)\)\}$/),
         func = function(x) { return x;};
 
     if(match) {
@@ -194,7 +194,7 @@ jsm.util.OptionMap.prototype.resolveDvalue_ = function(dvalue, context, opt_extr
 
     // replace "{foo.bar}" by the corresponding value in the context
     // and 
-	return func(dvalue.replace(/{([^}]+)}/g, function(str, input) {
+	return func(dvalue.replace(/\{([^}]+)\}/g, function(str, input) {
         var value = goog.getObjectByName(input, context);
 		var result = (opt_extractor_func) ? opt_extractor_func(value || null, input, context) : value;
         if(!goog.isString(result)) {
@@ -235,8 +235,8 @@ jsm.util.OptionMap.prototype.has = function(name) {
  * Iterates over all options and executes <code>callback</code> for every option in the map.
  * 
  * @param {function} callback The function to execute for every element. Gets three parameters:
- * 					 <code>name</code>, the name of the option, <code>value</code>, the value of the option,
- * 					 <code>index</code>, the index of the option.
+ *  <code>name</code>, the name of the option, <code>value</code>, the value of the option,
+ *  <code>index</code>, the index of the option.
  * @param {Object} opt_context The object, <code>this</code> should refer to in the callback.
  * 
  * @this {window|opt_context}

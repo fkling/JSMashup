@@ -48,11 +48,15 @@ jsm.mapper.EMDLMapper.prototype.getDescriptor = function(id, serialized, data) {
 jsm.mapper.EMDLMapper.prototype.getInstance = function(descriptor, opt_id, opt_config) {
 	var instance = new jsm.core.Component(descriptor, opt_id);
 
-	var f = new Function("exports, goog, triggerEvent", descriptor.getData('implementation')),
+	var f = new Function("exports, goog, triggerEvent, open, close", descriptor.getData('implementation')),
         fn = {};
 
     // provide some of closures helper methods
-    f(fn, {dom: goog.dom, json: goog.json, object: goog.object, array: goog.array}, goog.bind(instance.triggerEvent, instance));
+    f(fn, {dom: goog.dom, json: goog.json, object: goog.object, array: goog.array}, 
+        goog.bind(instance.triggerEvent, instance),
+        goog.bind(instance.open, instance),
+        goog.bind(instance.close, instance)
+     );
 	instance.fn = fn;
     instance.setData('name', descriptor.getData('name'));
     instance.setConfiguration(opt_config);

@@ -1,5 +1,3 @@
-/*global goog:true, jsm:true*/
-
 goog.provide('jsm.ui.input.Dropdown');
 goog.require('jsm.ui.input.BaseInput');
 
@@ -74,7 +72,7 @@ jsm.ui.input.Dropdown.prototype.update = function() {
 	}
 	else if(this.options.has('items')) {
         goog.object.forEach(this.options.get('items'), function(value, name){
-			goog.dom.append(this.inputElement_, goog.dom.createDom('option', {value: value}, goog.dom.createTextNode(name)));
+			goog.dom.append(this.inputElement_, goog.dom.createDom('option', {value: value, selected: (value == self.lastValue) ? 'selected' : ''}, goog.dom.createTextNode(name)));
 		}, this);
 	}
 };
@@ -103,6 +101,9 @@ jsm.ui.input.Dropdown.prototype.setValue = function(value) {
     }
 	this.lastDisplay_ = value.display;
 	this.lastValue_ = value.value;
+
+    this.inputElement_.value = value.value;
+
 	this.dispatchEvent({
         type: jsm.ui.input.BaseInput.Events.CHANGE
 	});

@@ -1,6 +1,3 @@
-/*global goog: true, jsm: true */
-/*jshint strict:false dot:false*/
-
 goog.provide('jsm.core.Component');
 goog.provide('jsm.core.Component.Events');
 
@@ -287,6 +284,7 @@ jsm.core.Component.prototype.update = function() {
 /**
  * Validates the component regarding its configuration options.
  *
+ * @return {boolean} True if the configuration of the component is valid
  */
 jsm.core.Component.prototype.validate = function() {
     var name = 'validate';
@@ -296,9 +294,18 @@ jsm.core.Component.prototype.validate = function() {
     return true;
 };
 
+jsm.core.Component.prototype.open =  function() {
+    this.publish(this.Events.OPEN);
+};
+
+jsm.core.Component.prototype.close = function() {
+    this.publish(this.Events.CLOSE);
+};
+
+
 
 /**
- * Returns a option name - value mapping.
+ * Returns a parameter name - value mapping.
  *
  * @return {Object.<string, {value: string, display: string}} the configuration
  */
@@ -332,13 +339,13 @@ jsm.core.Component.prototype.setConfiguration = function(config) {
 
 /**
  * Calls an operation of the component. If the component
- * has a method {@code op_operation}, this method is expected to
+ * has a method {@code this.fn[operation]}, this method is expected to
  * implement the logic for this operation.
  *
  * Calls data converters in reverse order.
  *
- * @param {string} operation the name of the operation.
- * @param {Object.<string, ?>} params parameters.
+ * @param {string} operation The name of the operation.
+ * @param {{head: Object,body: Object} message Input sent to operation
  */
 jsm.core.Component.prototype.perform = function(operation, message) {
     var op = this.operationManager.getOperation(operation),
@@ -393,10 +400,10 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
 
         // Inside an operation, a named request can be executed. In that case
         // we again provide some methods to make implementation easier.
-        'makeRequest': goog.bind(function(name, url, getData, postData, cb) {
+        'makeRequest': goog.bind(function(name, config) {
             if (name in this.requests) { //named request, trigger event if finished
                 var event = this.requests[name].triggers,
-                    orig_callback = cb;
+                    orig_callback = config.callback;
 
                 // chaining succint request finish calls and operation finish call
                 this_obj['finish'] = goog.functions.sequence(
@@ -406,7 +413,7 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
 
                 // Wrap the callback. Instead of calling `finishRequest`, returning
                 // a value finishes the request and operation automatically
-                cb = function(response) {
+                config.callback = function(response) {
                     if(goog.isFunction(orig_callback)) {
                         response = orig_callback.call(this_obj, response);
                     }
@@ -419,8 +426,14 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
 
             // Make the request. If it was not named, the callback
             // remains unchanged.
-            this.makeRequest(name, url, getData, postData, cb);
-        }, this)
+            this.makeRequest(name, config);
+        }, this),
+        'open': function() {
+            this.publish(this.Events.OPEN);
+        },
+        'close': function() {
+            this.publish(this.Events.CLOSE);
+        }
     };
 
     // A wrapper which handles the cases if either the operation is called
@@ -441,7 +454,7 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
         // if operation triggers request, the request is performed first
         // and the result is passed to the defined callback as second argument
         this_obj['finish'] = this.createFinishFunction_(trigger, this.requests[trigger].triggers);
-        this.makeRequest(trigger, null, null, null, goog.bind(call_operation, this, message_body), message_body);
+        this.makeRequest(trigger, {callback: goog.bind(call_operation, this, message_body)}, message_body);
     }
     else {
         call_operation(message_body);
@@ -452,7 +465,7 @@ jsm.core.Component.prototype.performInternal = function(operation, message_body)
 /**
  *
  * @private
-*/
+ */
 jsm.core.Component.prototype.markOperationAsFinished = function(operation) {
     this.publish(jsm.core.Component.Events.OPEND, this, operation);
     this.operationManager.resolve(operation);
@@ -463,9 +476,11 @@ jsm.core.Component.prototype.markOperationAsFinished = function(operation) {
  * Returns a function, which marks an action as finished and triggers an event by name, 
  * passing the result if provided.
  *
- * @param {string} name
- * @param {string} eventName
-*/
+ * @param {string} name Operation name
+ * @param {string} eventName Event name
+ *
+ * @return {function}
+ */
 jsm.core.Component.prototype.createFinishFunction_ = function(name, eventName) {
     return goog.bind(function finish(result) {
         if(!finish.called) {
@@ -479,16 +494,45 @@ jsm.core.Component.prototype.createFinishFunction_ = function(name, eventName) {
     }, this);
 };
 
+
+/**
+ * Finishes an operation and triggers the assacociated event if available.
+ * This a convenial wrapper.
+ *
+ * @param {string} operation Operation name
+ * @param {Object} data Data to send as result
+ */
+jsm.core.Component.prototype.finishOperation = function(operation, data) {
+    var op = this.operationManager.getOperation(operation);
+    this.createFinishFunction_(operation, op.getTrigger)(data);
+};
+
+
+/**
+ * Finishes an request and triggers the assacociated event if available.
+ * This a convenial wrapper.
+ *
+ * @param {string} request_name Request name
+ * @param {Object} opt_data Data to send as result
+ */
+jsm.core.Component.prototype.finishRequest = function(request_name, opt_data) {
+    var request = this.requests[request_name];
+    this.createFinishFunction_(request_name, request.triggers)(opt_data);
+};
+
+
 /** 
  * Used prepare the result of an operation or requestas event output.
  * If the result is an object, it might already be the complete body, 
  * i.e. each key corresponds to an output paramter of the event. If not,
  * the result is assigned to each output paramter of the event.
  * 
- * @param {string} eventName
- * @param {?} data
+ * @param {string} eventName Event name
+ * @param {*} data Result of the operation
+ *
+ * @return {Object} the body of the resulting message
  * 
-*/ 
+ */ 
 jsm.core.Component.prototype.prepareEventData_ = function(eventName, data) {
     var event = this.events_[eventName];
     var body = {},
@@ -510,8 +554,8 @@ jsm.core.Component.prototype.prepareEventData_ = function(eventName, data) {
 /**
  * Raise event.
  *
- * @param {string} event name.
- * @param {Object} params
+ * @param {string} event name Event name
+ * @param {Object} message_body Data to send to the next component
  * @protected
 */
 jsm.core.Component.prototype.triggerEvent = function(event, message_body) {
@@ -560,14 +604,16 @@ jsm.core.Component.prototype.triggerError = function(name, msg) {
  *
  *
  * @param {string} name - the name of the request as defined in description.
- * @param {string} url
- * @param {Object.<string, string>} getData - GET data mapping.
- * @param {Object.<string, string>} postData - POST data mapping.
- * @param {function(Object)} cb - function being called upon request complication.
- *                                The argument passed is the response text.
+ * @param {Object} opt_config Configuration for the Ajax request. Paramters are
+ *      - url: The URL to send the request to
+ *      - GET: The GET data to send
+ *      - POST: The POST data to send
+ *      - callack: Function to call when response was received
+ * @param {Object} message_body Used internally to forward operation input
  *
 */
-jsm.core.Component.prototype.makeRequest = function(name, url, getData, postData, cb, message_body) {
+jsm.core.Component.prototype.makeRequest = function(name, opt_config, message_body) {
+    opt_config = opt_config || {};
     var request = this.requests[name];
     var self = this;
     if (request) {
@@ -583,41 +629,41 @@ jsm.core.Component.prototype.makeRequest = function(name, url, getData, postData
         // prepare GET parameters
         if (request.parameters) {
             var parameters = jsm.util.OptionMap.get(request.parameters, null, context);
-            goog.object.extend(parameters, getData || {});
-            getData = parameters;
+            goog.object.extend(parameters, goog.object.get(opt_config, 'GET', {}));
+            opt_config.GET = parameters;
         }
 
         // prepare POST parameters
         if (request.data) {
-            if (goog.isObject(request.data) && goog.isObject(postData)) {
+            if (goog.isObject(request.data) && goog.isObject(opt_config.POST)) {
                 var data = jsm.util.OptionMap.get(request.data, null, context);
-                goog.object.extend(data, postData);
-                postData = data;
+                goog.object.extend(data, goog.object.get(opt_config, 'POST', {}));
+                opt_config.POST = data;
             }
-            else if (!postData) {
-                postData = request.data;
+            else if (!opt_config.POST) {
+                opt_config.POST = request.data;
             }
         }
 
         // set and parse URL if configured
-        if (request.url && !url) {
-            url = jsm.util.OptionMap.get({url: request.url}, 'url', context);
+        if (request.url && !opt_config.url) {
+            opt_config.url = jsm.util.OptionMap.get({url: request.url}, 'url', context);
         }
 
-        cb = goog.isFunction(cb) ? cb : this.createFinishFunction_(name, request.triggers);
+        opt_config.callback = goog.isFunction(opt_config.callback) ? opt_config.callback : this.createFinishFunction_(name, request.triggers);
     }
 
 
-    if (url) {
+    if (opt_config.url) {
         if(name) {
             this.publish(jsm.core.Component.Events.OPSTART, this, name);
         }
 
         var config = {
-            url: url,
-            parameters: getData || {},
-            data: postData,
-            success: cb,
+            url: opt_config.url,
+            parameters: opt_config.GET || {},
+            data: opt_config.POST,
+            success: opt_config.callback,
             error: function(msg, e) {
                 this.triggerError(name, e.target.getStatusText());
             },
@@ -708,17 +754,18 @@ jsm.core.Component.prototype.autorun = function() {
 
         // Inside an operation, a named request can be executed. In that case
         // we again provide some methods to make implementation easier.
-        'makeRequest': goog.bind(function(name, url, getData, postData, cb) {
+        'makeRequest': goog.bind(function(name, config) {
+            config = config || {};
             if (name in this.requests) { //named request, trigger event if finished
                 var event = this.requests[name].triggers,
-                    orig_callback = cb;
+                    orig_callback = config.callback;
 
                 // chaining succint request finish calls and operation finish call
                 this_obj['finish'] = this.createFinishFunction_(name, event);
 
                 // Wrap the callback. Instead of calling `finishRequest`, returning
                 // a value finishes the request and operation automatically
-                cb = function(response) {
+                config.callback = function(response) {
                     if(goog.isFunction(orig_callback)) {
                         response = orig_callback.call(this_obj, response);
                     }
@@ -731,7 +778,7 @@ jsm.core.Component.prototype.autorun = function() {
 
             // Make the request. If it was not named, the callback
             // remains unchanged.
-            this.makeRequest(name, url, getData, postData, cb);
+            this.makeRequest(name,config);
         }, this)
     };
 
@@ -787,5 +834,7 @@ jsm.core.Component.Events = jsm.core.Component.prototype.Events = {
     DISCONNECT: 'disconnect',
     EVENT: 'event',
     ADDED: 'added',
-    REMOVED: 'removed'
+    REMOVED: 'removed',
+    OPEN: 'open',
+    CLOSE: 'close'
 };
