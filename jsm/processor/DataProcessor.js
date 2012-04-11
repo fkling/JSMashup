@@ -86,7 +86,7 @@ jsm.processor.DataProcessor.prototype.getEventTrigger = function(event) {
 	if(request) return request.ref;
 	
 	var operation = goog.array.find(this.component.getDescriptor().getOperations(), function(operation) {
-		return operation.getRef() === event;
+		return operation.getTrigger() === event;
 	}); 
 	if(operation) return operation.getRef();
 	return event;

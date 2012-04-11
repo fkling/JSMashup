@@ -138,9 +138,16 @@ jsm.core.registry.ServerRegistry.prototype.getComponentDescriptorById = function
     };
 
 	if(this.componentDescriptors_[id]) {
-        success(this.componentDescriptors_[id]);
+        if(this.componentDescriptors_[id] instanceof goog.async.Deferred) {
+            this.componentDescriptors_[id].addCallback(success);
+            this.componentDescriptors_[id].addErrback(error);
+        }
+        else {
+            success(this.componentDescriptors_[id]);
+        }
 	}
 	else {
+        this.componentDescriptors_[id] = deferred;
 		jsm.core.net.makeRequest({
 			url:  this.components_url + id,
 			responseFormat: 'json',

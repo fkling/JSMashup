@@ -487,8 +487,11 @@ jsm.core.Component.prototype.createFinishFunction_ = function(name, eventName) {
             finish.called = true;
             this.markOperationAsFinished(name);
 
-            if(eventName) {
+            if(eventName && this.events_[eventName]) {
                 this.triggerEvent(eventName, this.prepareEventData_(eventName, result));
+            }
+            else if(eventName && this.requests[eventName]) {
+                 this.makeRequest(eventName);
             }
         }
     }, this);
@@ -504,7 +507,7 @@ jsm.core.Component.prototype.createFinishFunction_ = function(name, eventName) {
  */
 jsm.core.Component.prototype.finishOperation = function(operation, data) {
     var op = this.operationManager.getOperation(operation);
-    this.createFinishFunction_(operation, op.getTrigger)(data);
+    this.createFinishFunction_(operation, op.getTrigger())(data);
 };
 
 
