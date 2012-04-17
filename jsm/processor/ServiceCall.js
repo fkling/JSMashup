@@ -403,7 +403,7 @@ org.reseval.processor.ServiceCall.prototype.makeRequest = function(name, request
  * @private
 */
 org.reseval.processor.ServiceCall.prototype.getKey = function(config, data, header) {
-    var key = jsm.core.Session.getInstance().getId() + this.component.getId() + this.n;
+    var key = jsm.core.Session.getInstance().getId() + this.component.getId() + (Date.now() + '');
 
     if(data && data.cacheKey) {
         key = data.cacheKey;
